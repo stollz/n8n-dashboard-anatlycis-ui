@@ -13,6 +13,7 @@ interface ExecutionTableProps {
   data: ExecutionLog[];
   isLoading?: boolean;
   error?: string | null;
+  n8nBaseUrl?: string;
 }
 
 const StatusCellRenderer = (params: ICellRendererParams) => {
@@ -75,8 +76,9 @@ const OpenCellRenderer = (params: ICellRendererParams<ExecutionLog>) => {
   if (!data?.workflow_id || !data?.execution_id) {
     return <span className="text-muted-foreground">-</span>;
   }
-  
-  const url = `http://localhost:5678/workflow/${data.workflow_id}/executions/${data.execution_id}`;
+
+  const baseUrl = params.context?.n8nBaseUrl || "http://localhost:5678";
+  const url = `${baseUrl}/workflow/${data.workflow_id}/executions/${data.execution_id}`;
   
   return (
     <Button
@@ -118,7 +120,7 @@ const darkTheme = themeQuartz.withParams({
   rowHeight: 48,
 });
 
-export function ExecutionTable({ data, isLoading, error }: ExecutionTableProps) {
+export function ExecutionTable({ data, isLoading, error, n8nBaseUrl }: ExecutionTableProps) {
   const { resolvedTheme } = useTheme();
 
   const columnDefs = useMemo<ColDef[]>(
@@ -269,6 +271,7 @@ export function ExecutionTable({ data, isLoading, error }: ExecutionTableProps) 
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             getRowClass={getRowClass}
+            context={{ n8nBaseUrl }}
             animateRows={true}
             pagination={true}
             paginationPageSize={10}

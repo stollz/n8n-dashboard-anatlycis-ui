@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { closeAllTunnels } from "./tunnel-manager";
 
 const app = express();
 const httpServer = createServer(app);
@@ -100,4 +101,13 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
     },
   );
+
+  // Graceful shutdown
+  const shutdown = () => {
+    log("Shutting down, closing SSH tunnels...");
+    closeAllTunnels();
+    httpServer.close(() => process.exit(0));
+  };
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
 })();
