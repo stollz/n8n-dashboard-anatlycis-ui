@@ -120,11 +120,53 @@ export async function registerRoutes(
       const pool = await getInstancePool(req.query.instanceId as string, res);
       if (!pool) return;
 
-      const limit = parseInt(req.query.limit as string) || 100;
+      const limit = parseInt(req.query.limit as string) || 1000;
+      const search = (req.query.search as string)?.trim();
+      const workflowName = (req.query.workflowName as string)?.trim();
+      const status = (req.query.status as string)?.trim();
+      const startDate = (req.query.startDate as string)?.trim();
+      const endDate = (req.query.endDate as string)?.trim();
+
+      const conditions: string[] = [];
+      const params: (string | number)[] = [limit];
+      let paramIndex = 2;
+
+      if (workflowName) {
+        conditions.push(`workflow_name = $${paramIndex}`);
+        params.push(workflowName);
+        paramIndex++;
+      }
+
+      if (status) {
+        conditions.push(`status = $${paramIndex}`);
+        params.push(status);
+        paramIndex++;
+      }
+
+      if (startDate) {
+        conditions.push(`created_at >= $${paramIndex}::timestamptz`);
+        params.push(startDate);
+        paramIndex++;
+      }
+
+      if (endDate) {
+        conditions.push(`created_at <= $${paramIndex}::timestamptz`);
+        params.push(endDate);
+        paramIndex++;
+      }
+
+      if (search) {
+        const pattern = `%${search}%`;
+        conditions.push(`(workflow_name ILIKE $${paramIndex} OR error_message ILIKE $${paramIndex} OR execution_data::text ILIKE $${paramIndex} OR workflow_data::text ILIKE $${paramIndex})`);
+        params.push(pattern);
+        paramIndex++;
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
       const result = await pool.query(
-        `SELECT * FROM n8n_execution_logs ORDER BY created_at DESC LIMIT $1`,
-        [limit]
+        `SELECT * FROM n8n_execution_logs ${whereClause} ORDER BY created_at DESC LIMIT $1`,
+        params
       );
 
       res.json(result.rows);
@@ -154,7 +196,8 @@ export async function registerRoutes(
             WHEN COUNT(*) > 0
             THEN ROUND(COUNT(*) FILTER (WHERE status = 'success')::numeric / COUNT(*)::numeric * 100, 1)
             ELSE 0
-          END AS "successRate"
+          END AS "successRate",
+          MIN(created_at) AS "firstExecutionAt"
         FROM n8n_execution_logs
       `);
 
@@ -168,6 +211,7 @@ export async function registerRoutes(
         canceledCount: row.canceledCount,
         avgDurationMs: row.avgDurationMs,
         successRate: parseFloat(row.successRate),
+        firstExecutionAt: row.firstExecutionAt ?? null,
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -261,6 +305,26 @@ export async function registerRoutes(
       console.error("Error fetching workflow stats:", error);
       res.status(500).json({
         error: error instanceof Error ? error.message : "Failed to fetch workflow statistics",
+      });
+    }
+  });
+
+  app.get("/api/workflow-names", async (req, res) => {
+    try {
+      const pool = await getInstancePool(req.query.instanceId as string, res);
+      if (!pool) return;
+
+      const result = await pool.query(
+        `SELECT DISTINCT workflow_name AS name
+         FROM n8n_execution_logs
+         ORDER BY workflow_name`
+      );
+
+      res.json(result.rows.map((r: { name: string }) => r.name));
+    } catch (error) {
+      console.error("Error fetching workflow names:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to fetch workflow names",
       });
     }
   });

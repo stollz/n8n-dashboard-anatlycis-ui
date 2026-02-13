@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AreaChart,
   Area,
@@ -21,130 +20,147 @@ interface ExecutionChartProps {
 export function ExecutionChart({ data, isLoading, error }: ExecutionChartProps) {
   if (isLoading) {
     return (
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+      <div className="border-2 border-foreground bg-card shadow-brutal">
+        <div className="bg-brutal-blue border-b-2 border-foreground px-6 py-3">
+          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
             Execution Trends
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-6">
           <div className="h-[300px] flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" strokeWidth={3} />
+              <span className="font-heading text-sm uppercase tracking-wide text-muted-foreground">Loading...</span>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+      <div className="border-2 border-foreground bg-card shadow-brutal">
+        <div className="bg-brutal-coral border-b-2 border-foreground px-6 py-3">
+          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
             Execution Trends
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-6">
           <div className="h-[300px] flex flex-col items-center justify-center gap-3 text-muted-foreground">
-            <AlertCircle className="h-10 w-10 text-amber-500" />
-            <span className="text-sm">Unable to load chart data</span>
+            <div className="border-2 border-foreground bg-brutal-yellow p-3 shadow-brutal-sm">
+              <AlertCircle className="h-8 w-8 text-foreground" strokeWidth={2.5} />
+            </div>
+            <span className="text-sm font-bold uppercase">Unable to load chart data</span>
             <span className="text-xs max-w-xs text-center">{error}</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+      <div className="border-2 border-foreground bg-card shadow-brutal">
+        <div className="bg-brutal-blue border-b-2 border-foreground px-6 py-3">
+          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
             Execution Trends
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-6">
           <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            <span>No execution data available</span>
+            <span className="font-bold uppercase tracking-wide">No execution data available</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Execution Trends</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="border-2 border-foreground bg-card shadow-brutal">
+      <div className="bg-brutal-blue border-b-2 border-foreground px-6 py-3">
+        <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
+          Execution Trends
+        </h3>
+      </div>
+      <div className="p-6">
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={data}
               margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
             >
-              <defs>
-                <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorError" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
               <CartesianGrid
-                strokeDasharray="3 3"
+                strokeDasharray="0"
                 stroke="hsl(var(--border))"
-                vertical={false}
+                strokeWidth={1}
+                vertical={true}
               />
               <XAxis
                 dataKey="date"
-                stroke="hsl(var(--muted-foreground))"
+                stroke="hsl(var(--foreground))"
                 fontSize={12}
-                tickLine={false}
-                axisLine={false}
+                fontWeight={600}
+                fontFamily="var(--font-heading)"
+                tickLine={true}
+                axisLine={{ strokeWidth: 2 }}
               />
               <YAxis
-                stroke="hsl(var(--muted-foreground))"
+                stroke="hsl(var(--foreground))"
                 fontSize={12}
-                tickLine={false}
-                axisLine={false}
+                fontWeight={600}
+                fontFamily="var(--font-heading)"
+                tickLine={true}
+                axisLine={{ strokeWidth: 2 }}
                 tickFormatter={(value) => `${value}`}
               />
               <Tooltip
                 contentStyle={{
                   backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  boxShadow: "var(--shadow-lg)",
+                  border: "2px solid hsl(var(--foreground))",
+                  boxShadow: "var(--brutal-shadow)",
+                  fontFamily: "var(--font-sans)",
+                  fontWeight: 600,
                 }}
-                labelStyle={{ color: "hsl(var(--foreground))" }}
+                labelStyle={{
+                  color: "hsl(var(--foreground))",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
               />
-              <Legend />
+              <Legend
+                wrapperStyle={{
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 700,
+                  fontSize: "12px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              />
               <Area
-                type="monotone"
+                type="stepAfter"
                 dataKey="success"
                 name="Success"
-                stroke="hsl(142, 71%, 45%)"
-                strokeWidth={2}
+                stroke="hsl(142, 76%, 36%)"
+                strokeWidth={3}
                 fillOpacity={1}
-                fill="url(#colorSuccess)"
+                fill="hsl(142, 76%, 56% / 0.25)"
               />
               <Area
-                type="monotone"
+                type="stepAfter"
                 dataKey="error"
                 name="Errors"
-                stroke="hsl(0, 84%, 60%)"
-                strokeWidth={2}
+                stroke="hsl(0, 100%, 50%)"
+                strokeWidth={3}
                 fillOpacity={1}
-                fill="url(#colorError)"
+                fill="hsl(0, 100%, 64% / 0.25)"
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

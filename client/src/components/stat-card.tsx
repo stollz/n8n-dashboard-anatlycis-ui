@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
 
 interface StatCardProps {
@@ -14,17 +13,26 @@ interface StatCardProps {
 }
 
 const variantStyles = {
-  default: "text-primary",
-  success: "text-emerald-500",
-  error: "text-red-500",
-  warning: "text-amber-500",
-};
-
-const variantBgStyles = {
-  default: "bg-primary/10",
-  success: "bg-emerald-500/10",
-  error: "bg-red-500/10",
-  warning: "bg-amber-500/10",
+  default: {
+    bg: "bg-brutal-blue",
+    icon: "bg-brutal-blue",
+    border: "border-foreground",
+  },
+  success: {
+    bg: "bg-brutal-mint",
+    icon: "bg-brutal-mint",
+    border: "border-foreground",
+  },
+  error: {
+    bg: "bg-brutal-coral",
+    icon: "bg-brutal-coral",
+    border: "border-foreground",
+  },
+  warning: {
+    bg: "bg-brutal-yellow",
+    icon: "bg-brutal-yellow",
+    border: "border-foreground",
+  },
 };
 
 export function StatCard({
@@ -35,40 +43,49 @@ export function StatCard({
   trend,
   variant = "default",
 }: StatCardProps) {
+  const styles = variantStyles[variant];
+
   return (
-    <Card
-      className="shadow-sm"
+    <div
+      className={`border-2 ${styles.border} bg-card shadow-brutal brutal-hover overflow-hidden`}
       data-testid={`stat-card-${title.toLowerCase().replace(/\s+/g, "-")}`}
     >
-      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        <div className={`rounded-lg p-2 ${variantBgStyles[variant]} ${variantStyles[variant]}`}>
-          <Icon className="h-4 w-4" />
+      {/* Colored top strip */}
+      <div className={`h-2 ${styles.bg}`} />
+
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-heading font-bold uppercase tracking-widest text-muted-foreground mb-2">
+              {title}
+            </p>
+            <div className="text-4xl font-heading font-bold tracking-tight">{value}</div>
+          </div>
+          <div className={`${styles.icon} border-2 border-foreground p-2.5 shadow-brutal-sm`}>
+            <Icon className="h-5 w-5 text-foreground" strokeWidth={2.5} />
+          </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-bold tracking-tight">{value}</div>
         {description && (
-          <p className="text-sm text-muted-foreground mt-1">{description}</p>
+          <p className="text-sm text-muted-foreground mt-3 font-medium">{description}</p>
         )}
         {trend && (
-          <div className="flex items-center mt-2">
+          <div className="flex items-center mt-3 gap-1.5">
             <span
-              className={`text-sm font-medium ${
-                trend.isPositive ? "text-emerald-500" : "text-red-500"
+              className={`text-sm font-bold px-2 py-0.5 border-2 border-foreground ${
+                trend.isPositive
+                  ? "bg-brutal-mint text-foreground"
+                  : "bg-brutal-coral text-foreground"
               }`}
             >
               {trend.isPositive ? "+" : ""}
               {trend.value}%
             </span>
-            <span className="text-sm text-muted-foreground ml-1">
+            <span className="text-sm text-muted-foreground font-medium">
               vs last period
             </span>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

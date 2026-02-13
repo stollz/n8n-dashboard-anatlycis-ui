@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import type { N8nInstancePublic } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -102,7 +101,6 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
       if (isEditing) {
-        // Only send non-empty password/key fields on edit
         const body: Record<string, unknown> = { ...values };
         if (!values.dbPassword) delete body.dbPassword;
         if (!values.sshPrivateKeyPath) delete body.sshPrivateKeyPath;
@@ -130,15 +128,16 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <h4 className="text-sm font-medium mb-3">General</h4>
+            {/* General Section */}
+            <div className="border-2 border-foreground p-4 bg-card">
+              <h4 className="font-heading font-bold text-sm uppercase tracking-wide mb-3 bg-brutal-blue inline-block px-2 py-0.5 border-2 border-foreground shadow-brutal-sm">General</h4>
               <div className="space-y-3">
                 <FormField
                   control={form.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Instance Name</FormLabel>
+                      <FormLabel className="font-heading font-bold text-xs uppercase tracking-wide">Instance Name</FormLabel>
                       <FormControl>
                         <Input placeholder="My n8n Instance" {...field} />
                       </FormControl>
@@ -151,7 +150,7 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
                   name="n8nBaseUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>n8n Web UI URL</FormLabel>
+                      <FormLabel className="font-heading font-bold text-xs uppercase tracking-wide">n8n Web UI URL</FormLabel>
                       <FormControl>
                         <Input placeholder="http://localhost:5678" {...field} />
                       </FormControl>
@@ -162,10 +161,9 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
               </div>
             </div>
 
-            <Separator />
-
-            <div>
-              <h4 className="text-sm font-medium mb-3">SSH Connection</h4>
+            {/* SSH Section */}
+            <div className="border-2 border-foreground p-4 bg-card">
+              <h4 className="font-heading font-bold text-sm uppercase tracking-wide mb-3 bg-brutal-mint inline-block px-2 py-0.5 border-2 border-foreground shadow-brutal-sm">SSH Connection</h4>
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-2">
@@ -174,7 +172,7 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
                       name="sshHost"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Host</FormLabel>
+                          <FormLabel className="font-heading font-bold text-xs uppercase tracking-wide">Host</FormLabel>
                           <FormControl>
                             <Input placeholder="ssh.example.com" {...field} />
                           </FormControl>
@@ -188,7 +186,7 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
                     name="sshPort"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Port</FormLabel>
+                        <FormLabel className="font-heading font-bold text-xs uppercase tracking-wide">Port</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
@@ -202,7 +200,7 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
                   name="sshUser"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Username</FormLabel>
+                      <FormLabel className="font-heading font-bold text-xs uppercase tracking-wide">Username</FormLabel>
                       <FormControl>
                         <Input placeholder="ubuntu" {...field} />
                       </FormControl>
@@ -215,7 +213,9 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
                   name="sshPrivateKeyPath"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Private Key Path {isEditing && "(leave blank to keep current)"}</FormLabel>
+                      <FormLabel className="font-heading font-bold text-xs uppercase tracking-wide">
+                        Private Key Path {isEditing && "(leave blank to keep current)"}
+                      </FormLabel>
                       <FormControl>
                         <Input placeholder="/home/user/.ssh/id_rsa" {...field} />
                       </FormControl>
@@ -226,10 +226,9 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
               </div>
             </div>
 
-            <Separator />
-
-            <div>
-              <h4 className="text-sm font-medium mb-3">Database</h4>
+            {/* Database Section */}
+            <div className="border-2 border-foreground p-4 bg-card">
+              <h4 className="font-heading font-bold text-sm uppercase tracking-wide mb-3 bg-brutal-yellow inline-block px-2 py-0.5 border-2 border-foreground shadow-brutal-sm">Database</h4>
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-2">
@@ -238,7 +237,7 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
                       name="dbHost"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Host</FormLabel>
+                          <FormLabel className="font-heading font-bold text-xs uppercase tracking-wide">Host</FormLabel>
                           <FormControl>
                             <Input placeholder="127.0.0.1" {...field} />
                           </FormControl>
@@ -252,7 +251,7 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
                     name="dbPort"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Port</FormLabel>
+                        <FormLabel className="font-heading font-bold text-xs uppercase tracking-wide">Port</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
@@ -266,7 +265,7 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
                   name="dbName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Database Name</FormLabel>
+                      <FormLabel className="font-heading font-bold text-xs uppercase tracking-wide">Database Name</FormLabel>
                       <FormControl>
                         <Input placeholder="n8n" {...field} />
                       </FormControl>
@@ -279,7 +278,7 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
                   name="dbUser"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Username</FormLabel>
+                      <FormLabel className="font-heading font-bold text-xs uppercase tracking-wide">Username</FormLabel>
                       <FormControl>
                         <Input placeholder="postgres" {...field} />
                       </FormControl>
@@ -292,7 +291,9 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
                   name="dbPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password {isEditing && "(leave blank to keep current)"}</FormLabel>
+                      <FormLabel className="font-heading font-bold text-xs uppercase tracking-wide">
+                        Password {isEditing && "(leave blank to keep current)"}
+                      </FormLabel>
                       <FormControl>
                         <Input type="password" placeholder="***" {...field} />
                       </FormControl>
@@ -304,12 +305,14 @@ export function InstanceFormDialog({ open, onOpenChange, editInstance }: Instanc
             </div>
 
             {mutation.error && (
-              <p className="text-sm text-destructive">
-                {mutation.error instanceof Error ? mutation.error.message : "Failed to save"}
-              </p>
+              <div className="border-2 border-foreground bg-brutal-coral/20 p-3">
+                <p className="text-sm font-bold text-destructive">
+                  {mutation.error instanceof Error ? mutation.error.message : "Failed to save"}
+                </p>
+              </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>

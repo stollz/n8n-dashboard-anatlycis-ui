@@ -2,158 +2,191 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE - Enterprise Blue Theme */
+/* ============================================
+   NEO-BRUTALISM THEME
+   Bold borders, hard shadows, vivid flat colors
+   ============================================ */
+
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
+  /* Neo-brutalism core */
+  --border-width: 2.5px;
+  --shadow-offset: 4px;
+  --shadow-color: #1A1A2E;
+  --brutal-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--shadow-color);
+  --brutal-shadow-sm: 3px 3px 0px var(--shadow-color);
+  --brutal-shadow-lg: 6px 6px 0px var(--shadow-color);
+  --brutal-shadow-hover: 6px 6px 0px var(--shadow-color);
+  --brutal-shadow-active: 1px 1px 0px var(--shadow-color);
 
-  /* Automatic computation of border around primary / danger buttons */
-  --opaque-button-border-intensity: -8; /* In terms of percentages */
+  /* Warm cream background */
+  --background: 33 100% 96%;
+  --foreground: 240 26% 14%;
+  --border: 240 26% 14%;
 
-  /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
-
-  --background: 220 20% 97%;
-  --foreground: 222 47% 11%;
-  --border: 220 13% 91%;
-
+  /* Cards: pure white with black borders */
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --card-border: 220 13% 91%;
+  --card-foreground: 240 26% 14%;
+  --card-border: 240 26% 14%;
 
-  --sidebar: 222 47% 11%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 217 33% 17%;
-  --sidebar-primary: 217 91% 60%;
-  --sidebar-primary-foreground: 210 40% 98%;
-  --sidebar-accent: 217 33% 17%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-ring: 217 91% 60%;
+  /* Sidebar */
+  --sidebar: 240 26% 14%;
+  --sidebar-foreground: 33 100% 96%;
+  --sidebar-border: 240 26% 20%;
+  --sidebar-primary: 345 100% 68%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 26% 20%;
+  --sidebar-accent-foreground: 33 100% 96%;
+  --sidebar-ring: 345 100% 68%;
 
+  /* Popover */
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --popover-border: 220 13% 91%;
+  --popover-foreground: 240 26% 14%;
+  --popover-border: 240 26% 14%;
 
-  --primary: 217 91% 60%;
-  --primary-foreground: 210 40% 98%;
+  /* Hot pink primary */
+  --primary: 345 100% 68%;
+  --primary-foreground: 240 26% 14%;
 
-  --secondary: 220 14% 96%;
-  --secondary-foreground: 222 47% 11%;
+  /* Bright yellow secondary */
+  --secondary: 48 100% 62%;
+  --secondary-foreground: 240 26% 14%;
 
-  --muted: 220 14% 96%;
-  --muted-foreground: 220 9% 46%;
+  /* Warm muted */
+  --muted: 33 20% 90%;
+  --muted-foreground: 240 10% 44%;
 
-  --accent: 220 14% 96%;
-  --accent-foreground: 222 47% 11%;
+  /* Mint green accent */
+  --accent: 157 60% 72%;
+  --accent-foreground: 240 26% 14%;
 
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
+  /* Coral red destructive */
+  --destructive: 0 100% 64%;
+  --destructive-foreground: 0 0% 100%;
 
-  --input: 220 13% 91%;
-  --ring: 217 91% 60%;
+  --input: 240 26% 14%;
+  --ring: 240 26% 14%;
 
-  --chart-1: 217 91% 60%;
-  --chart-2: 142 71% 45%;
-  --chart-3: 0 84% 60%;
-  --chart-4: 38 92% 50%;
-  --chart-5: 262 83% 58%;
+  /* Vivid flat chart colors */
+  --chart-1: 345 100% 68%;
+  --chart-2: 142 76% 56%;
+  --chart-3: 0 100% 64%;
+  --chart-4: 48 100% 62%;
+  --chart-5: 262 83% 65%;
 
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-serif: Georgia, serif;
+  --font-heading: 'Space Mono', monospace;
+  --font-sans: 'Outfit', system-ui, sans-serif;
+  --font-serif: 'Space Mono', monospace;
   --font-mono: 'JetBrains Mono', monospace;
-  --radius: .5rem;
-  --shadow-2xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-xs: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --radius: 0px;
+  --shadow-2xs: var(--brutal-shadow-sm);
+  --shadow-xs: var(--brutal-shadow-sm);
+  --shadow-sm: var(--brutal-shadow);
+  --shadow: var(--brutal-shadow);
+  --shadow-md: var(--brutal-shadow);
+  --shadow-lg: var(--brutal-shadow-lg);
+  --shadow-xl: var(--brutal-shadow-lg);
+  --shadow-2xl: 8px 8px 0px var(--shadow-color);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
-  /* Automatically computed borders */
-  --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --primary-border: hsl(var(--primary));
-  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --secondary-border: hsl(var(--secondary));
-  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --muted-border: hsl(var(--muted));
-  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --accent-border: hsl(var(--accent));
-  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --destructive-border: hsl(var(--destructive));
-  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  /* Override the old elevation stuff */
+  --button-outline: hsl(240 26% 14%);
+  --badge-outline: hsl(240 26% 14%);
+  --elevate-1: rgba(0,0,0, .06);
+  --elevate-2: rgba(0,0,0, .12);
+  --opaque-button-border-intensity: 0;
+
+  /* Computed borders (all black for brutalism) */
+  --primary-border: hsl(240, 26%, 14%);
+  --secondary-border: hsl(240, 26%, 14%);
+  --muted-border: hsl(240, 26%, 14%);
+  --accent-border: hsl(240, 26%, 14%);
+  --destructive-border: hsl(240, 26%, 14%);
+  --sidebar-primary-border: hsl(240, 26%, 14%);
+  --sidebar-accent-border: hsl(240, 26%, 14%);
 }
 
 .dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --shadow-color: #000000;
+  --brutal-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--shadow-color);
+  --brutal-shadow-sm: 3px 3px 0px var(--shadow-color);
+  --brutal-shadow-lg: 6px 6px 0px var(--shadow-color);
+  --brutal-shadow-hover: 6px 6px 0px var(--shadow-color);
+  --brutal-shadow-active: 1px 1px 0px var(--shadow-color);
 
-  --opaque-button-border-intensity: 9;
+  --button-outline: hsl(220 20% 70%);
+  --badge-outline: hsl(220 20% 50%);
+  --elevate-1: rgba(255,255,255, .06);
+  --elevate-2: rgba(255,255,255, .12);
+  --opaque-button-border-intensity: 0;
 
-  /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  /* Dark charcoal base */
+  --background: 240 20% 10%;
+  --foreground: 40 50% 95%;
+  --border: 240 15% 30%;
 
-  --background: 222 47% 6%;
-  --foreground: 210 40% 98%;
-  --border: 217 33% 17%;
+  /* Dark elevated surface */
+  --card: 240 20% 14%;
+  --card-foreground: 40 50% 95%;
+  --card-border: 240 15% 30%;
 
-  --card: 222 47% 9%;
-  --card-foreground: 210 40% 98%;
-  --card-border: 217 33% 17%;
+  --sidebar: 240 20% 8%;
+  --sidebar-foreground: 40 50% 95%;
+  --sidebar-border: 240 15% 25%;
+  --sidebar-primary: 345 100% 72%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 20% 18%;
+  --sidebar-accent-foreground: 40 50% 95%;
+  --sidebar-ring: 345 100% 72%;
 
-  --sidebar: 222 47% 6%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 217 33% 17%;
-  --sidebar-primary: 217 91% 60%;
-  --sidebar-primary-foreground: 210 40% 98%;
-  --sidebar-accent: 217 33% 17%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-ring: 217 91% 60%;
+  --popover: 240 20% 14%;
+  --popover-foreground: 40 50% 95%;
+  --popover-border: 240 15% 30%;
 
-  --popover: 222 47% 9%;
-  --popover-foreground: 210 40% 98%;
-  --popover-border: 217 33% 17%;
+  /* Brighter pink in dark mode */
+  --primary: 345 100% 72%;
+  --primary-foreground: 240 20% 10%;
 
-  --primary: 217 91% 60%;
-  --primary-foreground: 210 40% 98%;
+  /* Brighter yellow */
+  --secondary: 48 100% 66%;
+  --secondary-foreground: 240 20% 10%;
 
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 98%;
+  --muted: 240 15% 20%;
+  --muted-foreground: 240 10% 60%;
 
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 65%;
+  /* Brighter mint */
+  --accent: 157 60% 64%;
+  --accent-foreground: 240 20% 10%;
 
-  --accent: 217 33% 17%;
-  --accent-foreground: 210 40% 98%;
+  --destructive: 0 90% 58%;
+  --destructive-foreground: 0 0% 100%;
 
-  --destructive: 0 62% 50%;
-  --destructive-foreground: 210 40% 98%;
+  --input: 240 15% 30%;
+  --ring: 345 100% 72%;
 
-  --input: 217 33% 22%;
-  --ring: 217 91% 60%;
+  --chart-1: 345 100% 72%;
+  --chart-2: 142 76% 56%;
+  --chart-3: 0 90% 58%;
+  --chart-4: 48 100% 66%;
+  --chart-5: 262 83% 70%;
 
-  --chart-1: 217 91% 60%;
-  --chart-2: 142 71% 45%;
-  --chart-3: 0 62% 50%;
-  --chart-4: 38 92% 50%;
-  --chart-5: 262 83% 58%;
+  /* Dark mode computed borders */
+  --primary-border: hsl(240, 15%, 30%);
+  --secondary-border: hsl(240, 15%, 30%);
+  --muted-border: hsl(240, 15%, 30%);
+  --accent-border: hsl(240, 15%, 30%);
+  --destructive-border: hsl(240, 15%, 30%);
+  --sidebar-primary-border: hsl(240, 15%, 25%);
+  --sidebar-accent-border: hsl(240, 15%, 25%);
 
-  --shadow-2xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-xs: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
-  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.5);
+  --shadow-2xs: var(--brutal-shadow-sm);
+  --shadow-xs: var(--brutal-shadow-sm);
+  --shadow-sm: var(--brutal-shadow);
+  --shadow: var(--brutal-shadow);
+  --shadow-md: var(--brutal-shadow);
+  --shadow-lg: var(--brutal-shadow-lg);
+  --shadow-xl: var(--brutal-shadow-lg);
+  --shadow-2xl: 8px 8px 0px var(--shadow-color);
 }
 
 @layer base {
@@ -164,27 +197,73 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  /* Neo-brutalism: default to no rounded corners */
+  *:not(.ag-root-wrapper *) {
+    border-radius: 0 !important;
+  }
+  /* Allow explicit border-radius via utility classes */
+  .rounded-brutal {
+    border-radius: 4px !important;
+  }
 }
 
-/* AG-Grid Enterprise Theme Override */
-.ag-theme-alpine,
-.ag-theme-alpine-dark {
-  --ag-background-color: hsl(var(--card));
-  --ag-header-background-color: hsl(var(--muted));
-  --ag-odd-row-background-color: hsl(var(--card));
-  --ag-row-hover-color: hsl(var(--accent));
-  --ag-selected-row-background-color: hsl(var(--primary) / 0.1);
-  --ag-border-color: hsl(var(--border));
-  --ag-header-foreground-color: hsl(var(--foreground));
-  --ag-foreground-color: hsl(var(--foreground));
-  --ag-font-family: var(--font-sans);
-  --ag-font-size: 14px;
-  --ag-row-height: 48px;
-  --ag-header-height: 48px;
-}
-
-/* Elevation utilities */
+/* Neo-brutalism card hover effect */
 @layer utilities {
+  .brutal-hover {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .brutal-hover:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--brutal-shadow-hover) !important;
+  }
+  .brutal-hover:active {
+    transform: translate(2px, 2px);
+    box-shadow: var(--brutal-shadow-active) !important;
+  }
+
+  .brutal-press {
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .brutal-press:active {
+    transform: translate(2px, 2px);
+    box-shadow: var(--brutal-shadow-active) !important;
+  }
+
+  /* Stripe pattern background */
+  .bg-stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 5px,
+      hsl(var(--foreground) / 0.03) 5px,
+      hsl(var(--foreground) / 0.03) 10px
+    );
+  }
+
+  /* Dot pattern background */
+  .bg-dots {
+    background-image: radial-gradient(
+      hsl(var(--foreground) / 0.08) 1px,
+      transparent 1px
+    );
+    background-size: 16px 16px;
+  }
+
+  /* Neo-brutalism text shadow */
+  .text-brutal {
+    text-shadow: 2px 2px 0px hsl(var(--foreground) / 0.15);
+  }
+
+  /* Neo-brutalism underline */
+  .underline-brutal {
+    text-decoration: none;
+    background-image: linear-gradient(hsl(var(--primary)), hsl(var(--primary)));
+    background-size: 100% 3px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+  }
+
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
@@ -204,7 +283,6 @@
     pointer-events: none;
     position: absolute;
     inset: 0px;
-    border-radius: inherit;
     z-index: -1;
   }
 
@@ -232,7 +310,6 @@
     pointer-events: none;
     position: absolute;
     inset: 0px;
-    border-radius: inherit;
     z-index: 999;
   }
 
@@ -253,4 +330,74 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+}
+
+/* AG-Grid Neo-Brutalism Theme Override */
+.ag-theme-alpine,
+.ag-theme-alpine-dark,
+.ag-root-wrapper {
+  --ag-background-color: hsl(var(--card));
+  --ag-header-background-color: hsl(var(--primary));
+  --ag-header-foreground-color: hsl(var(--primary-foreground));
+  --ag-odd-row-background-color: hsl(var(--card));
+  --ag-even-row-background-color: hsl(var(--background));
+  --ag-row-hover-color: hsl(var(--secondary) / 0.3);
+  --ag-selected-row-background-color: hsl(var(--primary) / 0.15);
+  --ag-border-color: hsl(var(--border));
+  --ag-foreground-color: hsl(var(--foreground));
+  --ag-font-family: var(--font-sans);
+  --ag-font-size: 14px;
+  --ag-row-height: 52px;
+  --ag-header-height: 52px;
+  --ag-cell-horizontal-padding: 16px;
+  --ag-borders: solid 2px;
+  --ag-row-border-width: 2px;
+  --ag-row-border-color: hsl(var(--border));
+  --ag-header-column-separator-display: block;
+  --ag-header-column-separator-color: hsl(var(--primary-foreground) / 0.3);
+  --ag-header-column-separator-width: 2px;
+  --ag-header-column-separator-height: 60%;
+  --ag-pagination-page-size-selector-width: 80px;
+}
+
+/* AG Grid brutalist overrides */
+.ag-root-wrapper * {
+  border-radius: 0 !important;
+}
+
+.ag-header {
+  font-family: var(--font-heading) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 12px !important;
+  letter-spacing: 0.05em !important;
+}
+
+.ag-paging-panel {
+  font-family: var(--font-sans) !important;
+  font-weight: 600 !important;
+  border-top: 2px solid hsl(var(--border)) !important;
+}
+
+/* Scrollbar brutalism */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-left: 2px solid hsl(var(--border));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--foreground) / 0.3);
+  border: 2px solid hsl(var(--border));
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground) / 0.5);
+}
+
+/* Selection color */
+::selection {
+  background: hsl(var(--primary) / 0.4);
+  color: hsl(var(--foreground));
 }

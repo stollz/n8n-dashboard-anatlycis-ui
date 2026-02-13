@@ -1,11 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PieChart,
   Pie,
   Cell,
   ResponsiveContainer,
   Tooltip,
-  Legend,
 } from "recharts";
 import type { ExecutionStats } from "@shared/schema";
 import { AlertCircle, Loader2 } from "lucide-react";
@@ -16,12 +14,12 @@ interface StatusDistributionChartProps {
   error?: string | null;
 }
 
-const COLORS = {
-  success: "hsl(142, 71%, 45%)",
-  error: "hsl(0, 84%, 60%)",
-  running: "hsl(217, 91%, 60%)",
-  waiting: "hsl(38, 92%, 50%)",
-  canceled: "hsl(220, 9%, 46%)",
+const COLORS: Record<string, string> = {
+  success: "#22C55E",
+  error: "#FF4444",
+  running: "#748FFC",
+  waiting: "#FFD43B",
+  canceled: "#94A3B8",
 };
 
 export function StatusDistributionChart({
@@ -31,37 +29,42 @@ export function StatusDistributionChart({
 }: StatusDistributionChartProps) {
   if (isLoading) {
     return (
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+      <div className="border-2 border-foreground bg-card shadow-brutal h-full">
+        <div className="bg-brutal-lavender border-b-2 border-foreground px-6 py-3">
+          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
             Status Distribution
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-6">
           <div className="h-[300px] flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" strokeWidth={3} />
+              <span className="font-heading text-sm uppercase tracking-wide text-muted-foreground">Loading...</span>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+      <div className="border-2 border-foreground bg-card shadow-brutal h-full">
+        <div className="bg-brutal-coral border-b-2 border-foreground px-6 py-3">
+          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
             Status Distribution
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-6">
           <div className="h-[300px] flex flex-col items-center justify-center gap-3 text-muted-foreground">
-            <AlertCircle className="h-10 w-10 text-amber-500" />
-            <span className="text-sm">Unable to load data</span>
+            <div className="border-2 border-foreground bg-brutal-yellow p-3 shadow-brutal-sm">
+              <AlertCircle className="h-8 w-8 text-foreground" strokeWidth={2.5} />
+            </div>
+            <span className="text-sm font-bold uppercase">Unable to load data</span>
             <span className="text-xs max-w-xs text-center">{error}</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -77,38 +80,42 @@ export function StatusDistributionChart({
 
   if (data.length === 0) {
     return (
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+      <div className="border-2 border-foreground bg-card shadow-brutal h-full">
+        <div className="bg-brutal-lavender border-b-2 border-foreground px-6 py-3">
+          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
             Status Distribution
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-6">
           <div className="h-[300px] flex items-center justify-center">
-            <span className="text-muted-foreground">No execution data available</span>
+            <span className="text-muted-foreground font-bold uppercase tracking-wide">No execution data available</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Status Distribution</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[300px]">
+    <div className="border-2 border-foreground bg-card shadow-brutal h-full">
+      <div className="bg-brutal-lavender border-b-2 border-foreground px-6 py-3">
+        <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
+          Status Distribution
+        </h3>
+      </div>
+      <div className="p-6">
+        <div className="h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={2}
+                innerRadius={50}
+                outerRadius={90}
+                paddingAngle={0}
                 dataKey="value"
+                stroke="hsl(var(--foreground))"
+                strokeWidth={2}
               >
                 {data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
@@ -117,17 +124,30 @@ export function StatusDistributionChart({
               <Tooltip
                 contentStyle={{
                   backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  boxShadow: "var(--shadow-lg)",
+                  border: "2px solid hsl(var(--foreground))",
+                  boxShadow: "var(--brutal-shadow)",
+                  fontFamily: "var(--font-sans)",
+                  fontWeight: 600,
                 }}
                 formatter={(value: number) => [value, "Executions"]}
               />
-              <Legend />
             </PieChart>
           </ResponsiveContainer>
         </div>
-      </CardContent>
-    </Card>
+        {/* Custom legend */}
+        <div className="flex flex-wrap gap-2 mt-3 justify-center">
+          {data.map((entry) => (
+            <div
+              key={entry.name}
+              className="flex items-center gap-1.5 border-2 border-foreground px-2 py-1 text-xs font-bold uppercase tracking-wide shadow-brutal-sm"
+              style={{ backgroundColor: entry.color }}
+            >
+              <span className="text-foreground">{entry.name}</span>
+              <span className="text-foreground font-heading">{entry.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

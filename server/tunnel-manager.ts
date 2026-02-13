@@ -14,6 +14,7 @@ interface TunnelEntry {
 }
 
 const tunnels = new Map<string, TunnelEntry>();
+const pendingTunnels = new Map<string, Promise<TunnelEntry>>();
 const IDLE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
 function resetIdleTimer(id: string) {
@@ -105,6 +106,9 @@ function createTunnel(instance: N8nInstance): Promise<TunnelEntry> {
       port: instance.sshPort,
       username: instance.sshUser,
       privateKey,
+      readyTimeout: 30000,
+      keepaliveInterval: 15000,
+      keepaliveCountMax: 3,
     });
   });
 }
@@ -116,9 +120,26 @@ export async function getPoolForInstance(instance: N8nInstance): Promise<pg.Pool
     return existing.pool;
   }
 
-  const entry = await createTunnel(instance);
-  tunnels.set(instance.id, entry);
-  resetIdleTimer(instance.id);
+  // Deduplicate concurrent tunnel creation for the same instance
+  const pending = pendingTunnels.get(instance.id);
+  if (pending) {
+    const entry = await pending;
+    resetIdleTimer(instance.id);
+    return entry.pool;
+  }
+
+  const promise = createTunnel(instance).then((entry) => {
+    tunnels.set(instance.id, entry);
+    pendingTunnels.delete(instance.id);
+    resetIdleTimer(instance.id);
+    return entry;
+  }).catch((err) => {
+    pendingTunnels.delete(instance.id);
+    throw err;
+  });
+
+  pendingTunnels.set(instance.id, promise);
+  const entry = await promise;
   return entry.pool;
 }
 
@@ -184,13 +205,16 @@ export async function testConnection(instance: N8nInstance): Promise<{ success: 
 
       ssh.on("error", (err) => reject(err));
 
-      setTimeout(() => reject(new Error("SSH connection timeout")), 15000);
+      setTimeout(() => reject(new Error("SSH connection timeout")), 30000);
 
       ssh.connect({
         host: instance.sshHost,
         port: instance.sshPort,
         username: instance.sshUser,
         privateKey,
+        readyTimeout: 30000,
+        keepaliveInterval: 15000,
+        keepaliveCountMax: 3,
       });
     });
 

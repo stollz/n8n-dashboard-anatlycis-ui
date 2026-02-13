@@ -1,9 +1,16 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AgGridReact } from "ag-grid-react";
-import { ColDef, ICellRendererParams, themeQuartz } from "ag-grid-community";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ColDef, ICellRendererParams, RowClickedEvent, themeQuartz } from "ag-grid-community";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/lib/theme-provider";
 import type { ExecutionLog } from "@shared/schema";
 import { format } from "date-fns";
@@ -18,37 +25,27 @@ interface ExecutionTableProps {
 
 const StatusCellRenderer = (params: ICellRendererParams) => {
   const status = params.value as string;
-  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    success: "default",
-    error: "destructive",
-    running: "secondary",
-    waiting: "outline",
-    canceled: "secondary",
-  };
 
   const colors: Record<string, string> = {
-    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-    error: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-    running: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-    waiting: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-    canceled: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20",
+    success: "bg-brutal-mint border-foreground text-foreground",
+    error: "bg-brutal-coral border-foreground text-foreground",
+    running: "bg-brutal-blue border-foreground text-foreground",
+    waiting: "bg-brutal-yellow border-foreground text-foreground",
+    canceled: "bg-muted border-foreground text-foreground",
   };
 
   return (
-    <Badge
-      variant={variants[status] || "secondary"}
-      className={`${colors[status] || ""} font-medium capitalize`}
-    >
+    <span className={`inline-flex items-center border-2 px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${colors[status] || "bg-muted border-foreground"}`}>
       {status}
-    </Badge>
+    </span>
   );
 };
 
 const DateCellRenderer = (params: ICellRendererParams) => {
-  if (!params.value) return <span className="text-muted-foreground">-</span>;
+  if (!params.value) return <span className="text-muted-foreground font-medium">-</span>;
   try {
     return (
-      <span className="text-sm">
+      <span className="text-sm font-medium font-mono">
         {format(new Date(params.value), "MMM dd, yyyy HH:mm:ss")}
       </span>
     );
@@ -60,15 +57,12 @@ const DateCellRenderer = (params: ICellRendererParams) => {
 const DurationCellRenderer = (params: ICellRendererParams) => {
   const ms = params.value as number | null;
   if (ms === null || ms === undefined) {
-    return <span className="text-muted-foreground">-</span>;
+    return <span className="text-muted-foreground font-medium">-</span>;
   }
-  if (ms < 1000) {
-    return <span>{ms}ms</span>;
-  }
-  if (ms < 60000) {
-    return <span>{(ms / 1000).toFixed(1)}s</span>;
-  }
-  return <span>{(ms / 60000).toFixed(1)}m</span>;
+  let text = `${ms}ms`;
+  if (ms >= 60000) text = `${(ms / 60000).toFixed(1)}m`;
+  else if (ms >= 1000) text = `${(ms / 1000).toFixed(1)}s`;
+  return <span className="font-mono font-bold">{text}</span>;
 };
 
 const OpenCellRenderer = (params: ICellRendererParams<ExecutionLog>) => {
@@ -79,66 +73,216 @@ const OpenCellRenderer = (params: ICellRendererParams<ExecutionLog>) => {
 
   const baseUrl = params.context?.n8nBaseUrl || "http://localhost:5678";
   const url = `${baseUrl}/workflow/${data.workflow_id}/executions/${data.execution_id}`;
-  
+
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-7 px-2 text-primary hover:text-primary"
-      onClick={() => window.open(url, "_blank")}
+    <button
+      className="inline-flex items-center gap-1 border-2 border-foreground bg-brutal-cyan px-2 py-1 text-xs font-bold uppercase tracking-wide shadow-brutal-sm brutal-press"
+      onClick={(e) => {
+        e.stopPropagation();
+        window.open(url, "_blank");
+      }}
       data-testid={`button-open-execution-${data.execution_id}`}
     >
-      <ExternalLink className="h-4 w-4 mr-1" />
+      <ExternalLink className="h-3 w-3" strokeWidth={3} />
       Open
-    </Button>
+    </button>
   );
 };
 
+const ErrorNodeCellRenderer = (params: ICellRendererParams<ExecutionLog>) => {
+  const execData = params.data?.execution_data as Record<string, unknown> | null;
+  const lastNode = execData?.lastNodeExecuted as string | undefined;
+  if (!lastNode) return <span className="text-muted-foreground font-medium">-</span>;
+  return (
+    <span className="text-sm font-bold text-destructive">{lastNode}</span>
+  );
+};
+
+function formatDate(value: string | null) {
+  if (!value) return "-";
+  try {
+    return format(new Date(value), "MMM dd, yyyy HH:mm:ss");
+  } catch {
+    return "-";
+  }
+}
+
+function formatDuration(ms: number | null) {
+  if (ms === null || ms === undefined) return "-";
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${(ms / 60000).toFixed(1)}m`;
+}
+
+function ExecutionDetailModal({
+  execution,
+  open,
+  onOpenChange,
+  n8nBaseUrl,
+}: {
+  execution: ExecutionLog | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  n8nBaseUrl?: string;
+}) {
+  if (!execution) return null;
+
+  const execData = execution.execution_data as Record<string, unknown> | null;
+  const lastNode = execData?.lastNodeExecuted as string | undefined;
+  const n8nUrl = n8nBaseUrl
+    ? `${n8nBaseUrl}/workflow/${execution.workflow_id}/executions/${execution.execution_id}`
+    : null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="pr-6">
+            {execution.workflow_name}
+            {n8nUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-2"
+                onClick={() => window.open(n8nUrl, "_blank")}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Open in n8n
+              </Button>
+            )}
+          </DialogTitle>
+          <DialogDescription>
+            Execution #{execution.execution_id}
+          </DialogDescription>
+        </DialogHeader>
+
+        <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="space-y-4 pb-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="border-2 border-foreground p-3 bg-card">
+                <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Status</span>
+                <div className="mt-1">
+                  <Badge
+                    variant={execution.status === "error" ? "destructive" : "default"}
+                    className="capitalize"
+                  >
+                    {execution.status}
+                  </Badge>
+                </div>
+              </div>
+              <div className="border-2 border-foreground p-3 bg-card">
+                <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Mode</span>
+                <p className="mt-1 font-bold">{execution.mode || "-"}</p>
+              </div>
+              <div className="border-2 border-foreground p-3 bg-card">
+                <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Started</span>
+                <p className="mt-1 font-mono font-medium text-sm">{formatDate(execution.started_at)}</p>
+              </div>
+              <div className="border-2 border-foreground p-3 bg-card">
+                <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Finished</span>
+                <p className="mt-1 font-mono font-medium text-sm">{formatDate(execution.finished_at)}</p>
+              </div>
+              <div className="border-2 border-foreground p-3 bg-card">
+                <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Duration</span>
+                <p className="mt-1 font-heading font-bold text-lg">{formatDuration(execution.duration_ms)}</p>
+              </div>
+              <div className="border-2 border-foreground p-3 bg-card">
+                <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Nodes</span>
+                <p className="mt-1 font-heading font-bold text-lg">{execution.node_count ?? "-"}</p>
+              </div>
+            </div>
+
+            {lastNode && (
+              <div className="border-2 border-foreground p-3 bg-brutal-coral/20">
+                <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Error Node</span>
+                <p className="mt-1 font-bold text-destructive">
+                  {lastNode}
+                </p>
+              </div>
+            )}
+
+            {execution.error_message && (
+              <div className="border-2 border-foreground p-3 bg-brutal-coral/10">
+                <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Error Message</span>
+                <pre className="mt-1 bg-foreground/5 border-2 border-foreground p-3 text-sm text-destructive whitespace-pre-wrap break-words font-mono">
+                  {execution.error_message}
+                </pre>
+              </div>
+            )}
+
+            {execData && (
+              <div>
+                <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Execution Data</span>
+                <pre className="mt-1 border-2 border-foreground bg-foreground/5 p-3 text-xs whitespace-pre-wrap break-words max-h-64 overflow-auto font-mono">
+                  {JSON.stringify(execData, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {execution.workflow_data && (
+              <div>
+                <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Workflow Data</span>
+                <pre className="mt-1 border-2 border-foreground bg-foreground/5 p-3 text-xs whitespace-pre-wrap break-words max-h-64 overflow-auto font-mono">
+                  {JSON.stringify(execution.workflow_data, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 const lightTheme = themeQuartz.withParams({
-  backgroundColor: "#ffffff",
-  headerBackgroundColor: "#f4f4f5",
-  oddRowBackgroundColor: "#ffffff",
-  rowHoverColor: "#f4f4f5",
-  borderColor: "#e4e4e7",
-  headerTextColor: "#09090b",
-  textColor: "#09090b",
+  backgroundColor: "#FFFFFF",
+  headerBackgroundColor: "#FF5C8A",
+  headerTextColor: "#1A1A2E",
+  oddRowBackgroundColor: "#FFFFFF",
+  rowHoverColor: "#FFD43B40",
+  borderColor: "#1A1A2E",
+  textColor: "#1A1A2E",
   fontSize: 14,
-  headerHeight: 48,
-  rowHeight: 48,
+  headerHeight: 52,
+  rowHeight: 52,
+  fontFamily: "Outfit, system-ui, sans-serif",
 });
 
 const darkTheme = themeQuartz.withParams({
-  backgroundColor: "#18181b",
-  headerBackgroundColor: "#27272a",
-  oddRowBackgroundColor: "#18181b",
-  rowHoverColor: "#27272a",
-  borderColor: "#3f3f46",
-  headerTextColor: "#fafafa",
-  textColor: "#fafafa",
+  backgroundColor: "#1E1E38",
+  headerBackgroundColor: "#FF7EB3",
+  headerTextColor: "#1E1E38",
+  oddRowBackgroundColor: "#1E1E38",
+  rowHoverColor: "#FFE06640",
+  borderColor: "#3D3D6B",
+  textColor: "#F5EDD8",
   fontSize: 14,
-  headerHeight: 48,
-  rowHeight: 48,
+  headerHeight: 52,
+  rowHeight: 52,
+  fontFamily: "Outfit, system-ui, sans-serif",
 });
 
 export function ExecutionTable({ data, isLoading, error, n8nBaseUrl }: ExecutionTableProps) {
   const { resolvedTheme } = useTheme();
+  const [selectedExecution, setSelectedExecution] = useState<ExecutionLog | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const columnDefs = useMemo<ColDef[]>(
     () => [
       {
-        headerName: "Open",
+        headerName: "OPEN",
         field: "execution_id",
         cellRenderer: OpenCellRenderer,
-        width: 100,
-        minWidth: 100,
-        maxWidth: 100,
+        width: 110,
+        minWidth: 110,
+        maxWidth: 110,
         sortable: false,
         filter: false,
         resizable: false,
       },
       {
         field: "workflow_name",
-        headerName: "Workflow",
+        headerName: "WORKFLOW",
         flex: 2,
         minWidth: 200,
         filter: true,
@@ -146,24 +290,16 @@ export function ExecutionTable({ data, isLoading, error, n8nBaseUrl }: Execution
       },
       {
         field: "status",
-        headerName: "Status",
+        headerName: "STATUS",
         flex: 1,
-        minWidth: 120,
+        minWidth: 130,
         cellRenderer: StatusCellRenderer,
         filter: true,
         sortable: true,
       },
       {
         field: "started_at",
-        headerName: "Started",
-        flex: 1.5,
-        minWidth: 180,
-        cellRenderer: DateCellRenderer,
-        sortable: true,
-      },
-      {
-        field: "finished_at",
-        headerName: "Finished",
+        headerName: "STARTED",
         flex: 1.5,
         minWidth: 180,
         cellRenderer: DateCellRenderer,
@@ -171,7 +307,7 @@ export function ExecutionTable({ data, isLoading, error, n8nBaseUrl }: Execution
       },
       {
         field: "duration_ms",
-        headerName: "Duration",
+        headerName: "DURATION",
         flex: 1,
         minWidth: 100,
         cellRenderer: DurationCellRenderer,
@@ -179,7 +315,7 @@ export function ExecutionTable({ data, isLoading, error, n8nBaseUrl }: Execution
       },
       {
         field: "mode",
-        headerName: "Mode",
+        headerName: "MODE",
         flex: 1,
         minWidth: 100,
         filter: true,
@@ -187,17 +323,21 @@ export function ExecutionTable({ data, isLoading, error, n8nBaseUrl }: Execution
         valueFormatter: (params) => params.value || "-",
       },
       {
-        field: "node_count",
-        headerName: "Nodes",
-        flex: 0.7,
-        minWidth: 80,
-        sortable: true,
-        valueFormatter: (params) =>
-          params.value !== null ? params.value : "-",
+        headerName: "ERROR NODE",
+        field: "execution_data",
+        flex: 1.2,
+        minWidth: 130,
+        cellRenderer: ErrorNodeCellRenderer,
+        sortable: false,
+        valueGetter: (params) => {
+          const ed = params.data?.execution_data as Record<string, unknown> | null;
+          return ed?.lastNodeExecuted ?? "";
+        },
+        filter: true,
       },
       {
         field: "error_message",
-        headerName: "Error",
+        headerName: "ERROR",
         flex: 2,
         minWidth: 200,
         tooltipField: "error_message",
@@ -221,51 +361,70 @@ export function ExecutionTable({ data, isLoading, error, n8nBaseUrl }: Execution
     return "";
   }, []);
 
+  const onRowClicked = useCallback((event: RowClickedEvent<ExecutionLog>) => {
+    if (event.data) {
+      setSelectedExecution(event.data);
+      setModalOpen(true);
+    }
+  }, []);
+
   const gridTheme = resolvedTheme === "dark" ? darkTheme : lightTheme;
 
   if (isLoading) {
     return (
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+      <div className="border-2 border-foreground bg-card shadow-brutal">
+        <div className="bg-primary border-b-2 border-foreground px-6 py-3">
+          <h3 className="font-heading font-bold uppercase tracking-wide text-primary-foreground">
             Execution Logs
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-6">
           <div className="h-[500px] flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" strokeWidth={3} />
+              <span className="font-heading text-sm uppercase tracking-wide text-muted-foreground">Loading...</span>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+      <div className="border-2 border-foreground bg-card shadow-brutal">
+        <div className="bg-brutal-coral border-b-2 border-foreground px-6 py-3">
+          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
             Execution Logs
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-6">
           <div className="h-[500px] flex flex-col items-center justify-center gap-3 text-muted-foreground">
-            <AlertCircle className="h-10 w-10 text-amber-500" />
-            <span className="text-sm font-medium">Unable to load execution logs</span>
+            <div className="border-2 border-foreground bg-brutal-yellow p-3 shadow-brutal-sm">
+              <AlertCircle className="h-8 w-8 text-foreground" strokeWidth={2.5} />
+            </div>
+            <span className="font-bold uppercase">Unable to load execution logs</span>
             <span className="text-xs max-w-md text-center">{error}</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Execution Logs</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[500px] w-full" data-testid="execution-table">
+    <>
+      <div className="border-2 border-foreground bg-card shadow-brutal">
+        <div className="bg-primary border-b-2 border-foreground px-6 py-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-heading font-bold uppercase tracking-wide text-primary-foreground">
+              Execution Logs
+            </h3>
+            <span className="text-xs font-heading font-bold uppercase tracking-wide text-primary-foreground/70">
+              {data.length} records
+            </span>
+          </div>
+        </div>
+        <div className="h-[500px] w-full cursor-pointer" data-testid="execution-table">
           <AgGridReact
             rowData={data}
             columnDefs={columnDefs}
@@ -279,9 +438,17 @@ export function ExecutionTable({ data, isLoading, error, n8nBaseUrl }: Execution
             domLayout="normal"
             suppressMovableColumns={true}
             theme={gridTheme}
+            onRowClicked={onRowClicked}
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <ExecutionDetailModal
+        execution={selectedExecution}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        n8nBaseUrl={n8nBaseUrl}
+      />
+    </>
   );
 }

@@ -6,12 +6,19 @@ export default {
   theme: {
     extend: {
       borderRadius: {
-        lg: ".5625rem", /* 9px */
-        md: ".375rem", /* 6px */
-        sm: ".1875rem", /* 3px */
+        lg: "0px",
+        md: "0px",
+        sm: "0px",
+      },
+      borderWidth: {
+        DEFAULT: "2.5px",
+        "0": "0",
+        "1": "1px",
+        "2": "2px",
+        "3": "3px",
+        "4": "4px",
       },
       colors: {
-        // Flat / base colors (regular buttons)
         background: "hsl(var(--background) / <alpha-value>)",
         foreground: "hsl(var(--foreground) / <alpha-value>)",
         border: "hsl(var(--border) / <alpha-value>)",
@@ -81,11 +88,31 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
+        /* Neo-brutalism vivid palette */
+        brutal: {
+          pink: "#FF5C8A",
+          yellow: "#FFD43B",
+          mint: "#7DFFC4",
+          blue: "#748FFC",
+          lavender: "#C4B5FD",
+          coral: "#FF6B6B",
+          cyan: "#A5F3FC",
+          lime: "#BEF264",
+          orange: "#FB923C",
+        },
       },
       fontFamily: {
+        heading: ["var(--font-heading)"],
         sans: ["var(--font-sans)"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
+      },
+      boxShadow: {
+        "brutal": "var(--brutal-shadow)",
+        "brutal-sm": "var(--brutal-shadow-sm)",
+        "brutal-lg": "var(--brutal-shadow-lg)",
+        "brutal-hover": "var(--brutal-shadow-hover)",
+        "brutal-active": "var(--brutal-shadow-active)",
       },
       keyframes: {
         "accordion-down": {
@@ -96,10 +123,26 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "brutal-bounce": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-4px)" },
+        },
+        "brutal-shake": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "25%": { transform: "translateX(-4px)" },
+          "75%": { transform: "translateX(4px)" },
+        },
+        "slide-in-brutal": {
+          "0%": { transform: "translateX(-100%)", opacity: "0" },
+          "100%": { transform: "translateX(0)", opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "brutal-bounce": "brutal-bounce 0.4s ease-in-out",
+        "brutal-shake": "brutal-shake 0.3s ease-in-out",
+        "slide-in-brutal": "slide-in-brutal 0.3s ease-out",
       },
     },
   },

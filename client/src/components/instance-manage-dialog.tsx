@@ -7,7 +7,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Plug, Loader2, Server } from "lucide-react";
 import type { N8nInstancePublic } from "@shared/schema";
@@ -80,9 +79,9 @@ export function InstanceManageDialog({ open, onOpenChange }: InstanceManageDialo
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
-              <span>Manage n8n Instances</span>
+              <span>Manage Instances</span>
               <Button size="sm" onClick={handleAdd}>
-                <Plus className="h-4 w-4 mr-1" />
+                <Plus className="h-4 w-4 mr-1" strokeWidth={3} />
                 Add Instance
               </Button>
             </DialogTitle>
@@ -90,75 +89,67 @@ export function InstanceManageDialog({ open, onOpenChange }: InstanceManageDialo
 
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <Loader2 className="h-6 w-6 animate-spin" strokeWidth={3} />
             </div>
           ) : instances.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <Server className="h-10 w-10 mb-3" />
-              <p className="text-sm font-medium">No instances configured</p>
-              <p className="text-xs mt-1">Add an n8n instance to get started</p>
+              <div className="border-2 border-foreground bg-brutal-lavender p-4 shadow-brutal mb-4">
+                <Server className="h-10 w-10 text-foreground" strokeWidth={2} />
+              </div>
+              <p className="font-heading font-bold uppercase tracking-wide">No instances configured</p>
+              <p className="text-xs mt-1 font-medium">Add an n8n instance to get started</p>
             </div>
           ) : (
             <div className="space-y-3">
               {instances.map((inst) => (
-                <Card key={inst.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium truncate">{inst.name}</h3>
-                        </div>
-                        <div className="text-xs text-muted-foreground space-y-0.5">
-                          <p>SSH: {inst.sshUser}@{inst.sshHost}:{inst.sshPort}</p>
-                          <p>DB: {inst.dbUser}@{inst.dbHost}:{inst.dbPort}/{inst.dbName}</p>
-                          <p>n8n: {inst.n8nBaseUrl}</p>
-                        </div>
-                        {testResult?.id === inst.id && (
-                          <div className="mt-2">
-                            <Badge variant={testResult.success ? "default" : "destructive"} className="text-xs">
-                              {testResult.success ? "Connected" : `Failed: ${testResult.error}`}
-                            </Badge>
-                          </div>
-                        )}
+                <div key={inst.id} className="border-2 border-foreground bg-card shadow-brutal-sm p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-heading font-bold uppercase tracking-wide truncate">{inst.name}</h3>
+                      <div className="text-xs text-muted-foreground font-mono mt-2 space-y-1">
+                        <p>SSH: {inst.sshUser}@{inst.sshHost}:{inst.sshPort}</p>
+                        <p>DB: {inst.dbUser}@{inst.dbHost}:{inst.dbPort}/{inst.dbName}</p>
+                        <p>n8n: {inst.n8nBaseUrl}</p>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleTestConnection(inst.id)}
-                          disabled={testingId === inst.id}
-                          title="Test connection"
-                        >
-                          {testingId === inst.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Plug className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleEdit(inst)}
-                          title="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(inst.id)}
-                          disabled={deleteMutation.isPending}
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {testResult?.id === inst.id && (
+                        <div className="mt-2">
+                          <Badge variant={testResult.success ? "default" : "destructive"}>
+                            {testResult.success ? "Connected" : `Failed: ${testResult.error}`}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        className="h-9 w-9 border-2 border-foreground bg-brutal-mint shadow-brutal-sm brutal-press flex items-center justify-center disabled:opacity-50 hover:brightness-110 transition-all"
+                        onClick={() => handleTestConnection(inst.id)}
+                        disabled={testingId === inst.id}
+                        title="Test connection"
+                      >
+                        {testingId === inst.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" strokeWidth={3} />
+                        ) : (
+                          <Plug className="h-4 w-4" strokeWidth={2.5} />
+                        )}
+                      </button>
+                      <button
+                        className="h-9 w-9 border-2 border-foreground bg-brutal-yellow shadow-brutal-sm brutal-press flex items-center justify-center hover:brightness-110 transition-all"
+                        onClick={() => handleEdit(inst)}
+                        title="Edit"
+                      >
+                        <Pencil className="h-4 w-4" strokeWidth={2.5} />
+                      </button>
+                      <button
+                        className="h-9 w-9 border-2 border-foreground bg-brutal-coral shadow-brutal-sm brutal-press flex items-center justify-center disabled:opacity-50 hover:brightness-110 transition-all"
+                        onClick={() => handleDelete(inst.id)}
+                        disabled={deleteMutation.isPending}
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           )}

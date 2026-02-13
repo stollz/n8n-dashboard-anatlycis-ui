@@ -77,6 +77,7 @@ export interface ExecutionStats {
   canceledCount: number;
   avgDurationMs: number;
   successRate: number;
+  firstExecutionAt: string | null;
 }
 
 export interface WorkflowStats {
