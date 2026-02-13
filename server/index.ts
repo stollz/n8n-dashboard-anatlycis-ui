@@ -24,6 +24,20 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// Basic auth — only enabled when AUTH_USER and AUTH_PASSWORD are set
+const authUser = process.env.AUTH_USER;
+const authPassword = process.env.AUTH_PASSWORD;
+if (authUser && authPassword) {
+  const expected = "Basic " + Buffer.from(`${authUser}:${authPassword}`).toString("base64");
+  app.use((req, res, next) => {
+    if (req.headers.authorization === expected) {
+      return next();
+    }
+    res.setHeader("WWW-Authenticate", 'Basic realm="n8n Dashboard"');
+    res.status(401).send("Unauthorized");
+  });
+}
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
