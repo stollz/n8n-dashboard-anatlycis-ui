@@ -21,7 +21,7 @@ export function InstanceSelector() {
         onValueChange={setSelectedInstanceId}
         disabled={isLoading || instances.length === 0}
       >
-        <SelectTrigger className="w-[200px] h-10">
+        <SelectTrigger className="w-[200px] h-9">
           <SelectValue placeholder={isLoading ? "Loading..." : "Select instance"} />
         </SelectTrigger>
         <SelectContent>
@@ -33,11 +33,11 @@ export function InstanceSelector() {
         </SelectContent>
       </Select>
       <button
-        className="h-10 w-10 border-2 border-foreground bg-brutal-lavender shadow-brutal-sm brutal-press flex items-center justify-center hover:brightness-110 transition-all"
+        className="h-9 w-9 rounded-md border border-border bg-background flex items-center justify-center hover:bg-accent transition-colors"
         onClick={() => setManageOpen(true)}
         title="Manage instances"
       >
-        <Settings className="h-5 w-5 text-foreground" strokeWidth={2.5} />
+        <Settings className="h-4 w-4 text-foreground" />
       </button>
 
       <InstanceManageDialog open={manageOpen} onOpenChange={setManageOpen} />

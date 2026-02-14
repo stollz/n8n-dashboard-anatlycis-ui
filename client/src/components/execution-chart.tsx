@@ -20,17 +20,17 @@ interface ExecutionChartProps {
 export function ExecutionChart({ data, isLoading, error }: ExecutionChartProps) {
   if (isLoading) {
     return (
-      <div className="border-2 border-foreground bg-card shadow-brutal">
-        <div className="bg-brutal-blue border-b-2 border-foreground px-6 py-3">
-          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
+      <div className="rounded-lg border border-border bg-card shadow-sm">
+        <div className="px-6 py-4">
+          <h3 className="text-sm font-semibold text-foreground">
             Execution Trends
           </h3>
         </div>
-        <div className="p-6">
+        <div className="px-6 pb-6">
           <div className="h-[300px] flex items-center justify-center">
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" strokeWidth={3} />
-              <span className="font-heading text-sm uppercase tracking-wide text-muted-foreground">Loading...</span>
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Loading...</span>
             </div>
           </div>
         </div>
@@ -40,18 +40,16 @@ export function ExecutionChart({ data, isLoading, error }: ExecutionChartProps) 
 
   if (error) {
     return (
-      <div className="border-2 border-foreground bg-card shadow-brutal">
-        <div className="bg-brutal-coral border-b-2 border-foreground px-6 py-3">
-          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
+      <div className="rounded-lg border border-border bg-card shadow-sm">
+        <div className="px-6 py-4">
+          <h3 className="text-sm font-semibold text-foreground">
             Execution Trends
           </h3>
         </div>
-        <div className="p-6">
+        <div className="px-6 pb-6">
           <div className="h-[300px] flex flex-col items-center justify-center gap-3 text-muted-foreground">
-            <div className="border-2 border-foreground bg-brutal-yellow p-3 shadow-brutal-sm">
-              <AlertCircle className="h-8 w-8 text-foreground" strokeWidth={2.5} />
-            </div>
-            <span className="text-sm font-bold uppercase">Unable to load chart data</span>
+            <AlertCircle className="h-6 w-6" />
+            <span className="text-sm font-medium">Unable to load chart data</span>
             <span className="text-xs max-w-xs text-center">{error}</span>
           </div>
         </div>
@@ -61,15 +59,15 @@ export function ExecutionChart({ data, isLoading, error }: ExecutionChartProps) 
 
   if (!data || data.length === 0) {
     return (
-      <div className="border-2 border-foreground bg-card shadow-brutal">
-        <div className="bg-brutal-blue border-b-2 border-foreground px-6 py-3">
-          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
+      <div className="rounded-lg border border-border bg-card shadow-sm">
+        <div className="px-6 py-4">
+          <h3 className="text-sm font-semibold text-foreground">
             Execution Trends
           </h3>
         </div>
-        <div className="p-6">
+        <div className="px-6 pb-6">
           <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            <span className="font-bold uppercase tracking-wide">No execution data available</span>
+            <span className="text-sm">No execution data available</span>
           </div>
         </div>
       </div>
@@ -77,13 +75,13 @@ export function ExecutionChart({ data, isLoading, error }: ExecutionChartProps) 
   }
 
   return (
-    <div className="border-2 border-foreground bg-card shadow-brutal">
-      <div className="bg-brutal-blue border-b-2 border-foreground px-6 py-3">
-        <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
+    <div className="rounded-lg border border-border bg-card shadow-sm">
+      <div className="px-6 py-4">
+        <h3 className="text-sm font-semibold text-foreground">
           Execution Trends
         </h3>
       </div>
-      <div className="p-6">
+      <div className="px-6 pb-6">
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
@@ -91,71 +89,66 @@ export function ExecutionChart({ data, isLoading, error }: ExecutionChartProps) 
               margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
             >
               <CartesianGrid
-                strokeDasharray="0"
+                strokeDasharray="3 3"
                 stroke="hsl(var(--border))"
                 strokeWidth={1}
-                vertical={true}
+                vertical={false}
               />
               <XAxis
                 dataKey="date"
-                stroke="hsl(var(--foreground))"
+                stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
-                fontWeight={600}
-                fontFamily="var(--font-heading)"
-                tickLine={true}
-                axisLine={{ strokeWidth: 2 }}
+                fontFamily="var(--font-sans)"
+                tickLine={false}
+                axisLine={false}
               />
               <YAxis
-                stroke="hsl(var(--foreground))"
+                stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
-                fontWeight={600}
-                fontFamily="var(--font-heading)"
-                tickLine={true}
-                axisLine={{ strokeWidth: 2 }}
+                fontFamily="var(--font-sans)"
+                tickLine={false}
+                axisLine={false}
                 tickFormatter={(value) => `${value}`}
               />
               <Tooltip
                 contentStyle={{
                   backgroundColor: "hsl(var(--card))",
-                  border: "2px solid hsl(var(--foreground))",
-                  boxShadow: "var(--brutal-shadow)",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                   fontFamily: "var(--font-sans)",
-                  fontWeight: 600,
+                  fontSize: "13px",
                 }}
                 labelStyle={{
                   color: "hsl(var(--foreground))",
-                  fontFamily: "var(--font-heading)",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
+                  fontFamily: "var(--font-sans)",
+                  fontWeight: 600,
+                  marginBottom: "4px",
                 }}
               />
               <Legend
                 wrapperStyle={{
-                  fontFamily: "var(--font-heading)",
-                  fontWeight: 700,
-                  fontSize: "12px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "13px",
                 }}
               />
               <Area
-                type="stepAfter"
+                type="monotone"
                 dataKey="success"
                 name="Success"
-                stroke="hsl(142, 76%, 36%)"
-                strokeWidth={3}
+                stroke="#059669"
+                strokeWidth={2}
                 fillOpacity={1}
-                fill="hsl(142, 76%, 56% / 0.25)"
+                fill="rgba(5, 150, 105, 0.1)"
               />
               <Area
-                type="stepAfter"
+                type="monotone"
                 dataKey="error"
                 name="Errors"
-                stroke="hsl(0, 100%, 50%)"
-                strokeWidth={3}
+                stroke="#DC2626"
+                strokeWidth={2}
                 fillOpacity={1}
-                fill="hsl(0, 100%, 64% / 0.25)"
+                fill="rgba(220, 38, 38, 0.1)"
               />
             </AreaChart>
           </ResponsiveContainer>

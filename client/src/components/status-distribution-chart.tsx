@@ -15,11 +15,11 @@ interface StatusDistributionChartProps {
 }
 
 const COLORS: Record<string, string> = {
-  success: "#22C55E",
-  error: "#FF4444",
-  running: "#748FFC",
-  waiting: "#FFD43B",
-  canceled: "#94A3B8",
+  success: "#059669",
+  error: "#DC2626",
+  running: "#2563EB",
+  waiting: "#D97706",
+  canceled: "#6B7280",
 };
 
 export function StatusDistributionChart({
@@ -29,17 +29,17 @@ export function StatusDistributionChart({
 }: StatusDistributionChartProps) {
   if (isLoading) {
     return (
-      <div className="border-2 border-foreground bg-card shadow-brutal h-full">
-        <div className="bg-brutal-lavender border-b-2 border-foreground px-6 py-3">
-          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
+      <div className="rounded-lg border border-border bg-card shadow-sm h-full">
+        <div className="px-6 py-4">
+          <h3 className="text-sm font-semibold text-foreground">
             Status Distribution
           </h3>
         </div>
-        <div className="p-6">
+        <div className="px-6 pb-6">
           <div className="h-[300px] flex items-center justify-center">
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" strokeWidth={3} />
-              <span className="font-heading text-sm uppercase tracking-wide text-muted-foreground">Loading...</span>
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Loading...</span>
             </div>
           </div>
         </div>
@@ -49,18 +49,16 @@ export function StatusDistributionChart({
 
   if (error) {
     return (
-      <div className="border-2 border-foreground bg-card shadow-brutal h-full">
-        <div className="bg-brutal-coral border-b-2 border-foreground px-6 py-3">
-          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
+      <div className="rounded-lg border border-border bg-card shadow-sm h-full">
+        <div className="px-6 py-4">
+          <h3 className="text-sm font-semibold text-foreground">
             Status Distribution
           </h3>
         </div>
-        <div className="p-6">
+        <div className="px-6 pb-6">
           <div className="h-[300px] flex flex-col items-center justify-center gap-3 text-muted-foreground">
-            <div className="border-2 border-foreground bg-brutal-yellow p-3 shadow-brutal-sm">
-              <AlertCircle className="h-8 w-8 text-foreground" strokeWidth={2.5} />
-            </div>
-            <span className="text-sm font-bold uppercase">Unable to load data</span>
+            <AlertCircle className="h-6 w-6" />
+            <span className="text-sm font-medium">Unable to load data</span>
             <span className="text-xs max-w-xs text-center">{error}</span>
           </div>
         </div>
@@ -80,15 +78,15 @@ export function StatusDistributionChart({
 
   if (data.length === 0) {
     return (
-      <div className="border-2 border-foreground bg-card shadow-brutal h-full">
-        <div className="bg-brutal-lavender border-b-2 border-foreground px-6 py-3">
-          <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
+      <div className="rounded-lg border border-border bg-card shadow-sm h-full">
+        <div className="px-6 py-4">
+          <h3 className="text-sm font-semibold text-foreground">
             Status Distribution
           </h3>
         </div>
-        <div className="p-6">
+        <div className="px-6 pb-6">
           <div className="h-[300px] flex items-center justify-center">
-            <span className="text-muted-foreground font-bold uppercase tracking-wide">No execution data available</span>
+            <span className="text-sm text-muted-foreground">No execution data available</span>
           </div>
         </div>
       </div>
@@ -96,13 +94,13 @@ export function StatusDistributionChart({
   }
 
   return (
-    <div className="border-2 border-foreground bg-card shadow-brutal h-full">
-      <div className="bg-brutal-lavender border-b-2 border-foreground px-6 py-3">
-        <h3 className="font-heading font-bold uppercase tracking-wide text-foreground">
+    <div className="rounded-lg border border-border bg-card shadow-sm h-full">
+      <div className="px-6 py-4">
+        <h3 className="text-sm font-semibold text-foreground">
           Status Distribution
         </h3>
       </div>
-      <div className="p-6">
+      <div className="px-6 pb-6">
         <div className="h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -112,9 +110,9 @@ export function StatusDistributionChart({
                 cy="50%"
                 innerRadius={50}
                 outerRadius={90}
-                paddingAngle={0}
+                paddingAngle={2}
                 dataKey="value"
-                stroke="hsl(var(--foreground))"
+                stroke="hsl(var(--card))"
                 strokeWidth={2}
               >
                 {data.map((entry, index) => (
@@ -124,26 +122,30 @@ export function StatusDistributionChart({
               <Tooltip
                 contentStyle={{
                   backgroundColor: "hsl(var(--card))",
-                  border: "2px solid hsl(var(--foreground))",
-                  boxShadow: "var(--brutal-shadow)",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                   fontFamily: "var(--font-sans)",
-                  fontWeight: 600,
+                  fontSize: "13px",
                 }}
                 formatter={(value: number) => [value, "Executions"]}
               />
             </PieChart>
           </ResponsiveContainer>
         </div>
-        {/* Custom legend */}
-        <div className="flex flex-wrap gap-2 mt-3 justify-center">
+        {/* Legend */}
+        <div className="flex flex-wrap gap-3 mt-3 justify-center">
           {data.map((entry) => (
             <div
               key={entry.name}
-              className="flex items-center gap-1.5 border-2 border-foreground px-2 py-1 text-xs font-bold uppercase tracking-wide shadow-brutal-sm"
-              style={{ backgroundColor: entry.color }}
+              className="flex items-center gap-1.5 text-sm"
             >
-              <span className="text-foreground">{entry.name}</span>
-              <span className="text-foreground font-heading">{entry.value}</span>
+              <div
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-muted-foreground">{entry.name}</span>
+              <span className="font-mono font-medium text-foreground">{entry.value}</span>
             </div>
           ))}
         </div>

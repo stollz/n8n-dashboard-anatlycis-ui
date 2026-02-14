@@ -7,13 +7,13 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Zap,
   RefreshCw,
   Server,
   Search,
   CalendarIcon,
   X,
   Info,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -178,31 +178,24 @@ export default function Dashboard() {
   const noInstances = !instancesLoading && instances.length === 0;
 
   return (
-    <div className="min-h-screen bg-background bg-dots">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b-3 border-foreground bg-card">
+      <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center border-2 border-foreground bg-primary shadow-brutal-sm">
-                <Activity className="h-6 w-6 text-primary-foreground" strokeWidth={2.5} />
-              </div>
-              <div>
-                <h1 className="font-heading text-lg font-bold uppercase tracking-wide">
-                  n8n Dashboard
-                </h1>
-                <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
-                  Workflow Analytics
-                </p>
-              </div>
+          <div className="flex h-14 items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <Activity className="h-5 w-5 text-primary" />
+              <h1 className="text-sm font-semibold">
+                n8n Dashboard
+              </h1>
             </div>
             <div className="flex items-center gap-2">
               <InstanceSelector />
               {selectedInstanceId && syncStatusData && (
-                <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold">
+                <div className="hidden sm:flex items-center gap-1.5 text-xs">
                   <div className={cn(
-                    "h-2 w-2 rounded-full",
-                    syncStatusData.lastSyncSuccess === false ? "bg-red-500" : "bg-green-500"
+                    "h-1.5 w-1.5 rounded-full",
+                    syncStatusData.lastSyncSuccess === false ? "bg-rose-500" : "bg-emerald-500"
                   )} />
                   <span className="text-muted-foreground">
                     {syncStatusData.lastSyncSuccess === false
@@ -222,7 +215,6 @@ export default function Dashboard() {
               >
                 <RefreshCw
                   className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`}
-                  strokeWidth={2.5}
                 />
                 Refresh
               </Button>
@@ -233,15 +225,13 @@ export default function Dashboard() {
       </header>
 
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* No Instances */}
           {noInstances && (
-            <div className="border-2 border-foreground bg-brutal-cyan shadow-brutal p-8 text-center">
-              <div className="inline-block border-2 border-foreground bg-card p-4 shadow-brutal-sm mb-4">
-                <Server className="h-10 w-10 text-foreground" strokeWidth={2} />
-              </div>
-              <h3 className="font-heading font-bold uppercase tracking-wide text-lg mb-1">No instances configured</h3>
-              <p className="text-sm font-medium text-foreground/70">
+            <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center">
+              <Server className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <h3 className="font-semibold text-lg mb-1">No instances configured</h3>
+              <p className="text-sm text-muted-foreground">
                 Click the gear icon above to add your first n8n instance.
               </p>
             </div>
@@ -249,14 +239,12 @@ export default function Dashboard() {
 
           {/* Connection Error */}
           {hasError && !noInstances && (
-            <div className="border-2 border-foreground bg-brutal-yellow shadow-brutal p-4">
+            <div className="rounded-lg bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 p-4">
               <div className="flex items-center gap-3">
-                <div className="border-2 border-foreground bg-brutal-coral p-2 shadow-brutal-sm">
-                  <Activity className="h-5 w-5 text-foreground" strokeWidth={2.5} />
-                </div>
+                <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400 shrink-0" />
                 <div>
-                  <span className="font-heading font-bold uppercase tracking-wide">Connection Issue</span>
-                  <p className="text-sm font-medium mt-0.5">
+                  <span className="font-medium text-rose-800 dark:text-rose-300">Connection Issue</span>
+                  <p className="text-sm text-rose-700 dark:text-rose-400 mt-0.5">
                     Unable to connect to the selected instance. Check SSH and database credentials.
                   </p>
                 </div>
@@ -276,23 +264,23 @@ export default function Dashboard() {
                         aria-expanded={workflowOpen}
                         disabled={!selectedInstanceId}
                         className={cn(
-                          "h-10 w-52 flex items-center justify-between border-2 border-foreground bg-card px-3 text-sm font-medium shadow-brutal-sm disabled:opacity-50",
+                          "h-9 w-52 flex items-center justify-between rounded-md border border-input bg-background px-3 text-sm shadow-sm disabled:opacity-50",
                           !selectedWorkflow && "text-muted-foreground"
                         )}
                       >
                         <span className="truncate">
                           {selectedWorkflow || "All workflows"}
                         </span>
-                        <Search className="ml-2 h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
+                        <Search className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-64 p-0 border-2 border-foreground shadow-brutal" align="start">
+                    <PopoverContent className="w-64 p-0" align="start">
                       <Command filter={(value, search) =>
                         value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
                       }>
-                        <CommandInput placeholder="Search workflows..." className="font-medium" />
+                        <CommandInput placeholder="Search workflows..." />
                         <CommandList>
-                          <CommandEmpty className="py-4 text-center text-sm font-bold uppercase">No workflows found.</CommandEmpty>
+                          <CommandEmpty className="py-4 text-center text-sm text-muted-foreground">No workflows found.</CommandEmpty>
                           <CommandGroup>
                             <CommandItem
                               value="__all__"
@@ -300,7 +288,6 @@ export default function Dashboard() {
                                 setSelectedWorkflow("");
                                 setWorkflowOpen(false);
                               }}
-                              className="font-medium"
                             >
                               All workflows
                             </CommandItem>
@@ -312,7 +299,6 @@ export default function Dashboard() {
                                   setSelectedWorkflow(name);
                                   setWorkflowOpen(false);
                                 }}
-                                className="font-medium"
                               >
                                 {name}
                               </CommandItem>
@@ -328,7 +314,7 @@ export default function Dashboard() {
                     onValueChange={(v) => setSelectedStatus(v === "__all__" ? "" : v)}
                     disabled={!selectedInstanceId}
                   >
-                    <SelectTrigger className="h-10 w-40 text-sm">
+                    <SelectTrigger className="h-9 w-40 text-sm">
                       <SelectValue placeholder="All statuses" />
                     </SelectTrigger>
                     <SelectContent>
@@ -346,11 +332,11 @@ export default function Dashboard() {
                       <button
                         disabled={!selectedInstanceId}
                         className={cn(
-                          "h-10 flex items-center border-2 border-foreground bg-card px-3 text-sm font-medium shadow-brutal-sm disabled:opacity-50",
+                          "h-9 flex items-center rounded-md border border-input bg-background px-3 text-sm shadow-sm disabled:opacity-50",
                           !dateRange?.from && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" strokeWidth={2.5} />
+                        <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
                         {dateRange?.from ? (
                           dateRange.to ? (
                             <>
@@ -365,7 +351,7 @@ export default function Dashboard() {
                         )}
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 border-2 border-foreground shadow-brutal" align="start">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="range"
                         selected={dateRange}
@@ -377,23 +363,23 @@ export default function Dashboard() {
                   </Popover>
 
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" strokeWidth={2.5} />
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       type="text"
                       placeholder="Search payloads..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       disabled={!selectedInstanceId}
-                      className="h-10 w-52 pl-9 text-sm"
+                      className="h-9 w-52 pl-9 text-sm"
                     />
                   </div>
 
                   {hasActiveFilters && (
                     <button
                       onClick={clearFilters}
-                      className="h-10 px-3 border-2 border-foreground bg-brutal-coral text-foreground font-bold text-xs uppercase tracking-wide shadow-brutal-sm brutal-press flex items-center gap-1"
+                      className="h-9 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors flex items-center gap-1"
                     >
-                      <X className="h-4 w-4" strokeWidth={3} />
+                      <X className="h-4 w-4" />
                       Clear
                     </button>
                   )}
@@ -402,7 +388,7 @@ export default function Dashboard() {
 
               {/* Stats */}
               <section>
-                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <StatCard
                     title="Total Executions"
                     value={statsLoading ? "..." : stats?.totalExecutions ?? 0}
@@ -436,9 +422,9 @@ export default function Dashboard() {
 
               {/* Logging info */}
               {stats?.firstExecutionAt && (
-                <div className="flex items-center gap-2 border-2 border-foreground bg-card px-4 py-2 shadow-brutal-sm">
-                  <Info className="h-4 w-4 shrink-0" strokeWidth={2.5} />
-                  <span className="text-xs font-bold">
+                <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-4 py-2.5">
+                  <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
                     Logging since{" "}
                     <span className="font-mono">{format(new Date(stats.firstExecutionAt), "MMM d, yyyy 'at' HH:mm")}</span>
                     {" — "}only workflows executed after this time appear in the dashboard.
@@ -481,18 +467,15 @@ export default function Dashboard() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t-3 border-foreground bg-card py-5 mt-8">
+      <footer className="border-t border-border py-4 mt-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="font-heading font-bold uppercase tracking-wide text-sm">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
               n8n Execution Dashboard
             </p>
-            <div className="flex items-center gap-2">
-              <div className="border-2 border-foreground bg-brutal-mint px-3 py-1 shadow-brutal-sm flex items-center gap-1.5">
-                <Zap className="h-4 w-4" strokeWidth={2.5} />
-                <span className="text-xs font-bold uppercase tracking-wide">Auto-synced every 60s</span>
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Auto-synced every 60s
+            </p>
           </div>
         </div>
       </footer>

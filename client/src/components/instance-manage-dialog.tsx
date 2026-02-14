@@ -81,7 +81,7 @@ export function InstanceManageDialog({ open, onOpenChange }: InstanceManageDialo
             <DialogTitle className="flex items-center justify-between">
               <span>Manage Instances</span>
               <Button size="sm" onClick={handleAdd}>
-                <Plus className="h-4 w-4 mr-1" strokeWidth={3} />
+                <Plus className="h-4 w-4 mr-1" />
                 Add Instance
               </Button>
             </DialogTitle>
@@ -89,23 +89,21 @@ export function InstanceManageDialog({ open, onOpenChange }: InstanceManageDialo
 
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" strokeWidth={3} />
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : instances.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <div className="border-2 border-foreground bg-brutal-lavender p-4 shadow-brutal mb-4">
-                <Server className="h-10 w-10 text-foreground" strokeWidth={2} />
-              </div>
-              <p className="font-heading font-bold uppercase tracking-wide">No instances configured</p>
-              <p className="text-xs mt-1 font-medium">Add an n8n instance to get started</p>
+              <Server className="h-10 w-10 mb-3" />
+              <p className="font-medium">No instances configured</p>
+              <p className="text-sm mt-1">Add an n8n instance to get started</p>
             </div>
           ) : (
             <div className="space-y-3">
               {instances.map((inst) => (
-                <div key={inst.id} className="border-2 border-foreground bg-card shadow-brutal-sm p-4">
+                <div key={inst.id} className="rounded-lg border border-border bg-card p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-heading font-bold uppercase tracking-wide truncate">{inst.name}</h3>
+                      <h3 className="font-semibold truncate">{inst.name}</h3>
                       <div className="text-xs text-muted-foreground font-mono mt-2 space-y-1">
                         <p>SSH: {inst.sshUser}@{inst.sshHost}:{inst.sshPort}</p>
                         <p>DB: {inst.dbUser}@{inst.dbHost}:{inst.dbPort}/{inst.dbName}</p>
@@ -113,7 +111,7 @@ export function InstanceManageDialog({ open, onOpenChange }: InstanceManageDialo
                       </div>
                       {testResult?.id === inst.id && (
                         <div className="mt-2">
-                          <Badge variant={testResult.success ? "default" : "destructive"}>
+                          <Badge variant={testResult.success ? "success" : "destructive"}>
                             {testResult.success ? "Connected" : `Failed: ${testResult.error}`}
                           </Badge>
                         </div>
@@ -121,31 +119,31 @@ export function InstanceManageDialog({ open, onOpenChange }: InstanceManageDialo
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
-                        className="h-9 w-9 border-2 border-foreground bg-brutal-mint shadow-brutal-sm brutal-press flex items-center justify-center disabled:opacity-50 hover:brightness-110 transition-all"
+                        className="h-8 w-8 rounded-md border border-border bg-background flex items-center justify-center disabled:opacity-50 hover:bg-accent transition-colors"
                         onClick={() => handleTestConnection(inst.id)}
                         disabled={testingId === inst.id}
                         title="Test connection"
                       >
                         {testingId === inst.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" strokeWidth={3} />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Plug className="h-4 w-4" strokeWidth={2.5} />
+                          <Plug className="h-4 w-4" />
                         )}
                       </button>
                       <button
-                        className="h-9 w-9 border-2 border-foreground bg-brutal-yellow shadow-brutal-sm brutal-press flex items-center justify-center hover:brightness-110 transition-all"
+                        className="h-8 w-8 rounded-md border border-border bg-background flex items-center justify-center hover:bg-accent transition-colors"
                         onClick={() => handleEdit(inst)}
                         title="Edit"
                       >
-                        <Pencil className="h-4 w-4" strokeWidth={2.5} />
+                        <Pencil className="h-4 w-4" />
                       </button>
                       <button
-                        className="h-9 w-9 border-2 border-foreground bg-brutal-coral shadow-brutal-sm brutal-press flex items-center justify-center disabled:opacity-50 hover:brightness-110 transition-all"
+                        className="h-8 w-8 rounded-md border border-border bg-background flex items-center justify-center disabled:opacity-50 hover:bg-accent transition-colors text-rose-500"
                         onClick={() => handleDelete(inst.id)}
                         disabled={deleteMutation.isPending}
                         title="Delete"
                       >
-                        <Trash2 className="h-4 w-4" strokeWidth={2.5} />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
