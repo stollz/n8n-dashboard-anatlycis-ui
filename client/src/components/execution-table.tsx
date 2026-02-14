@@ -15,6 +15,7 @@ import { useTheme } from "@/lib/theme-provider";
 import type { ExecutionLog } from "@shared/schema";
 import { format } from "date-fns";
 import { AlertCircle, ChevronDown, ChevronRight, ExternalLink, Loader2 } from "lucide-react";
+import { JsonTree, highlightText } from "@/components/json-tree";
 
 interface ExecutionTableProps {
   data: ExecutionLog[];
@@ -22,6 +23,7 @@ interface ExecutionTableProps {
   error?: string | null;
   n8nBaseUrl?: string;
   instanceId?: string;
+  searchTerm?: string;
 }
 
 const StatusCellRenderer = (params: ICellRendererParams) => {
@@ -185,18 +187,9 @@ function extractOutputData(run: Record<string, unknown>): unknown[] {
   return items;
 }
 
-function CollapsibleJson({ data, label }: { data: unknown; label: string }) {
+function CollapsibleJson({ data, label, highlight }: { data: unknown; label: string; highlight?: string }) {
   const [expanded, setExpanded] = useState(false);
-  const jsonStr = JSON.stringify(data, null, 2);
-  const lineCount = jsonStr.split("\n").length;
-
-  if (lineCount <= 3) {
-    return (
-      <pre className="bg-muted rounded-md p-2 text-xs whitespace-pre-wrap break-words font-mono">
-        {jsonStr}
-      </pre>
-    );
-  }
+  const keyCount = typeof data === "object" && data !== null ? Object.keys(data).length : 0;
 
   return (
     <div>
@@ -205,18 +198,16 @@ function CollapsibleJson({ data, label }: { data: unknown; label: string }) {
         onClick={() => setExpanded(!expanded)}
       >
         {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        {label} ({lineCount} lines)
+        {label} ({keyCount} keys)
       </button>
       {expanded && (
-        <pre className="bg-muted rounded-md p-2 text-xs whitespace-pre-wrap break-words font-mono max-h-[300px] overflow-auto">
-          {jsonStr}
-        </pre>
+        <JsonTree data={data} highlight={highlight} defaultExpanded={true} />
       )}
     </div>
   );
 }
 
-function NodeRow({ node, n8nBaseUrl }: { node: NodeRunResult; n8nBaseUrl?: string }) {
+function NodeRow({ node, n8nBaseUrl, searchTerm }: { node: NodeRunResult; n8nBaseUrl?: string; searchTerm?: string }) {
   const [expanded, setExpanded] = useState(false);
   // Lazy: only extract output data when expanded
   const outputData = useMemo(
@@ -231,6 +222,13 @@ function NodeRow({ node, n8nBaseUrl }: { node: NodeRunResult; n8nBaseUrl?: strin
         ? "bg-rose-500"
         : "bg-amber-500";
 
+  // Check if this node's output data contains the search term
+  const hasSearchMatch = useMemo(() => {
+    if (!searchTerm || searchTerm.length < 2) return false;
+    const str = JSON.stringify(node.rawRun).toLowerCase();
+    return str.includes(searchTerm.toLowerCase());
+  }, [searchTerm, node.rawRun]);
+
   return (
     <div className="rounded-md border border-border overflow-hidden">
       <button
@@ -238,7 +236,12 @@ function NodeRow({ node, n8nBaseUrl }: { node: NodeRunResult; n8nBaseUrl?: strin
         onClick={() => setExpanded(!expanded)}
       >
         <div className={`h-2 w-2 rounded-full shrink-0 ${statusColor}`} />
-        <span className="text-sm font-medium flex-1 truncate">{node.name}</span>
+        {hasSearchMatch && (
+          <div className="h-2 w-2 rounded-full shrink-0 bg-amber-400" title="Contains search match" />
+        )}
+        <span className="text-sm font-medium flex-1 truncate">
+          {searchTerm ? highlightText(node.name, searchTerm) : node.name}
+        </span>
         <span className="text-xs font-mono text-muted-foreground shrink-0">
           {formatDuration(node.executionTime)}
         </span>
@@ -282,7 +285,7 @@ function NodeRow({ node, n8nBaseUrl }: { node: NodeRunResult; n8nBaseUrl?: strin
             <div className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground">Output</span>
               {outputData.map((item, i) => (
-                <CollapsibleJson key={i} data={item} label={`Item ${i + 1}`} />
+                <JsonTree key={i} data={item} highlight={searchTerm} defaultExpanded={true} />
               ))}
             </div>
           )}
@@ -296,11 +299,11 @@ function NodeRow({ node, n8nBaseUrl }: { node: NodeRunResult; n8nBaseUrl?: strin
   );
 }
 
-function NodeExecutionTimeline({ nodes, n8nBaseUrl }: { nodes: NodeRunResult[]; n8nBaseUrl?: string }) {
+function NodeExecutionTimeline({ nodes, n8nBaseUrl, searchTerm }: { nodes: NodeRunResult[]; n8nBaseUrl?: string; searchTerm?: string }) {
   return (
     <div className="space-y-1">
       {nodes.map((node, idx) => (
-        <NodeRow key={idx} node={node} n8nBaseUrl={n8nBaseUrl} />
+        <NodeRow key={idx} node={node} n8nBaseUrl={n8nBaseUrl} searchTerm={searchTerm} />
       ))}
     </div>
   );
@@ -312,12 +315,14 @@ function ExecutionDetailModal({
   onOpenChange,
   n8nBaseUrl,
   instanceId,
+  searchTerm,
 }: {
   execution: ExecutionLog | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   n8nBaseUrl?: string;
   instanceId?: string;
+  searchTerm?: string;
 }) {
   const [showRawData, setShowRawData] = useState(false);
   // Lazy-load full execution detail (with JSONB data) only when modal opens
@@ -410,7 +415,7 @@ function ExecutionDetailModal({
               <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-md p-3">
                 <span className="text-xs font-medium text-muted-foreground">Error Message</span>
                 <pre className="mt-1 bg-muted rounded-md p-3 text-sm text-destructive whitespace-pre-wrap break-words font-mono">
-                  {execution.error_message}
+                  {searchTerm ? highlightText(execution.error_message, searchTerm) : execution.error_message}
                 </pre>
               </div>
             )}
@@ -440,16 +445,16 @@ function ExecutionDetailModal({
                 <div className="mt-2 rounded-md border border-border bg-muted/30 p-3">
                   <p className="text-sm text-muted-foreground">No node execution data available</p>
                   {execData && (
-                    <pre className="mt-2 bg-muted rounded-md p-3 text-xs whitespace-pre-wrap break-words font-mono max-h-[400px] overflow-auto">
-                      {JSON.stringify(execData, null, 2)}
-                    </pre>
+                    <div className="mt-2">
+                      <JsonTree data={execData} highlight={searchTerm} defaultExpanded={true} />
+                    </div>
                   )}
                 </div>
               )}
 
               {nodeResults.length > 0 && (
                 <div className="mt-2">
-                  <NodeExecutionTimeline nodes={nodeResults} n8nBaseUrl={n8nBaseUrl} />
+                  <NodeExecutionTimeline nodes={nodeResults} n8nBaseUrl={n8nBaseUrl} searchTerm={searchTerm} />
                 </div>
               )}
             </div>
@@ -485,10 +490,10 @@ function ExecutionDetailModal({
                 {showRawData && (
                   <div className="mt-2 space-y-3">
                     {execData && (
-                      <CollapsibleJson data={execData} label="Execution Data" />
+                      <CollapsibleJson data={execData} label="Execution Data" highlight={searchTerm} />
                     )}
                     {workflowData && (
-                      <CollapsibleJson data={workflowData} label="Workflow Data" />
+                      <CollapsibleJson data={workflowData} label="Workflow Data" highlight={searchTerm} />
                     )}
                   </div>
                 )}
@@ -529,7 +534,7 @@ const darkTheme = themeQuartz.withParams({
   fontFamily: "Inter, system-ui, sans-serif",
 });
 
-export function ExecutionTable({ data, isLoading, error, n8nBaseUrl, instanceId }: ExecutionTableProps) {
+export function ExecutionTable({ data, isLoading, error, n8nBaseUrl, instanceId, searchTerm }: ExecutionTableProps) {
   const { resolvedTheme } = useTheme();
   const [selectedExecution, setSelectedExecution] = useState<ExecutionLog | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -708,6 +713,7 @@ export function ExecutionTable({ data, isLoading, error, n8nBaseUrl, instanceId 
         onOpenChange={setModalOpen}
         n8nBaseUrl={n8nBaseUrl}
         instanceId={instanceId}
+        searchTerm={searchTerm}
       />
     </>
   );

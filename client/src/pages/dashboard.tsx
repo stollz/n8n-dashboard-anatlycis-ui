@@ -460,6 +460,7 @@ export default function Dashboard() {
                   error={executionsError ? getErrorMessage(executionsError) : null}
                   n8nBaseUrl={selectedInstance?.n8nBaseUrl}
                   instanceId={selectedInstanceId ?? undefined}
+                  searchTerm={debouncedSearch}
                 />
               </section>
             </>

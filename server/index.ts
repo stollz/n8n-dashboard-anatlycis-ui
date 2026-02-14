@@ -31,7 +31,17 @@ const authUser = process.env.AUTH_USER;
 const authPassword = process.env.AUTH_PASSWORD;
 if (authUser && authPassword) {
   const expected = "Basic " + Buffer.from(`${authUser}:${authPassword}`).toString("base64");
+  const isDev = process.env.NODE_ENV !== "production";
   app.use((req, res, next) => {
+    // In dev mode, skip auth for Vite-served paths (module scripts, HMR, deps)
+    if (isDev && (
+      req.path.startsWith("/@") ||
+      req.path.startsWith("/src/") ||
+      req.path.startsWith("/node_modules/") ||
+      req.path === "/vite-hmr"
+    )) {
+      return next();
+    }
     if (req.headers.authorization === expected) {
       return next();
     }
