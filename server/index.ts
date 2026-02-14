@@ -5,6 +5,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { closeAllTunnels } from "./tunnel-manager";
 import { startPoller, stopPoller } from "./poller";
+import { ensureSearchIndexes } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
@@ -84,6 +85,9 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
   await startPoller();
+  ensureSearchIndexes().catch((err) =>
+    console.error("Failed to create search indexes:", err)
+  );
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

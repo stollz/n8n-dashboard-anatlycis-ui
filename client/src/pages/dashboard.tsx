@@ -66,7 +66,7 @@ export default function Dashboard() {
 
   // Debounce search input
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 800);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
@@ -366,7 +366,7 @@ export default function Dashboard() {
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       type="text"
-                      placeholder="Search payloads..."
+                      placeholder="Search all data..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       disabled={!selectedInstanceId}

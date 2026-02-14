@@ -176,6 +176,8 @@ export async function registerRoutes(
         const searchCondition = or(
           ilike(executionLogs.workflowName, pattern),
           ilike(executionLogs.errorMessage, pattern),
+          sql`${executionLogs.executionData}::text ILIKE ${pattern}`,
+          sql`${executionLogs.workflowData}::text ILIKE ${pattern}`,
         );
         whereCondition = and(whereCondition, searchCondition)!;
       }
