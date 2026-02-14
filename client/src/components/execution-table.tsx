@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/lib/theme-provider";
 import type { ExecutionLog } from "@shared/schema";
 import { format } from "date-fns";
-import { AlertCircle, ExternalLink, Loader2 } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronRight, ExternalLink, Loader2 } from "lucide-react";
 
 interface ExecutionTableProps {
   data: ExecutionLog[];
@@ -115,6 +115,180 @@ function formatDuration(ms: number | null) {
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
+interface NodeRunResult {
+  name: string;
+  status: string;
+  executionTime: number;
+  executionIndex: number;
+  outputData: unknown[];
+  source: string | null;
+  subExecution?: { workflowId: string; executionId: string };
+}
+
+function parseRunData(execData: Record<string, unknown>): NodeRunResult[] {
+  const runData = execData.runData as Record<string, Array<Record<string, unknown>>> | undefined;
+  if (!runData) return [];
+
+  const nodes: NodeRunResult[] = [];
+  for (const [nodeName, runs] of Object.entries(runData)) {
+    const run = runs[0];
+    if (!run) continue;
+
+    const mainOutputs = (run.data as Record<string, unknown>)?.main as unknown[][] | undefined;
+    const outputItems: unknown[] = [];
+    if (mainOutputs) {
+      for (const branch of mainOutputs) {
+        if (Array.isArray(branch)) {
+          for (const item of branch) {
+            const json = (item as Record<string, unknown>)?.json;
+            if (json && Object.keys(json as object).length > 0) {
+              outputItems.push(json);
+            }
+          }
+        }
+      }
+    }
+
+    const sourceArr = run.source as Array<Record<string, unknown>> | undefined;
+    const metadata = run.metadata as Record<string, unknown> | undefined;
+
+    nodes.push({
+      name: nodeName,
+      status: (run.executionStatus as string) || "unknown",
+      executionTime: (run.executionTime as number) || 0,
+      executionIndex: (run.executionIndex as number) ?? 999,
+      outputData: outputItems,
+      source: sourceArr?.[0]?.previousNode as string | null ?? null,
+      subExecution: metadata?.subExecution as { workflowId: string; executionId: string } | undefined,
+    });
+  }
+
+  return nodes.sort((a, b) => a.executionIndex - b.executionIndex);
+}
+
+function CollapsibleJson({ data, label }: { data: unknown; label: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const jsonStr = JSON.stringify(data, null, 2);
+  const lineCount = jsonStr.split("\n").length;
+
+  if (lineCount <= 3) {
+    return (
+      <pre className="bg-muted rounded-md p-2 text-xs whitespace-pre-wrap break-words font-mono">
+        {jsonStr}
+      </pre>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-1"
+        onClick={() => setExpanded(!expanded)}
+      >
+        {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        {label} ({lineCount} lines)
+      </button>
+      {expanded && (
+        <pre className="bg-muted rounded-md p-2 text-xs whitespace-pre-wrap break-words font-mono max-h-[300px] overflow-auto">
+          {jsonStr}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+function NodeExecutionTimeline({ nodes, n8nBaseUrl }: { nodes: NodeRunResult[]; n8nBaseUrl?: string }) {
+  const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
+
+  const toggleNode = (idx: number) => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-1">
+      {nodes.map((node, idx) => {
+        const isExpanded = expandedNodes.has(idx);
+        const hasOutput = node.outputData.length > 0;
+        const statusColor =
+          node.status === "success"
+            ? "bg-emerald-500"
+            : node.status === "error"
+              ? "bg-rose-500"
+              : "bg-amber-500";
+
+        return (
+          <div key={idx} className="rounded-md border border-border overflow-hidden">
+            <button
+              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/50 transition-colors"
+              onClick={() => toggleNode(idx)}
+            >
+              <div className={`h-2 w-2 rounded-full shrink-0 ${statusColor}`} />
+              <span className="text-sm font-medium flex-1 truncate">{node.name}</span>
+              <span className="text-xs font-mono text-muted-foreground shrink-0">
+                {formatDuration(node.executionTime)}
+              </span>
+              {hasOutput && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  {node.outputData.length} item{node.outputData.length !== 1 ? "s" : ""}
+                </Badge>
+              )}
+              {isExpanded ? (
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              )}
+            </button>
+
+            {isExpanded && (
+              <div className="px-3 pb-3 space-y-2 border-t border-border bg-muted/20">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-xs text-muted-foreground">
+                  <span>Status: <span className="text-foreground font-medium">{node.status}</span></span>
+                  {node.source && <span>From: <span className="text-foreground font-medium">{node.source}</span></span>}
+                  {node.subExecution && (
+                    <span>
+                      Sub-workflow:{" "}
+                      {n8nBaseUrl ? (
+                        <a
+                          href={`${n8nBaseUrl}/workflow/${node.subExecution.workflowId}/executions/${node.subExecution.executionId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline font-medium"
+                        >
+                          #{node.subExecution.executionId}
+                        </a>
+                      ) : (
+                        <span className="text-foreground font-medium">#{node.subExecution.executionId}</span>
+                      )}
+                    </span>
+                  )}
+                </div>
+
+                {hasOutput && (
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground">Output</span>
+                    {node.outputData.map((item, i) => (
+                      <CollapsibleJson key={i} data={item} label={`Item ${i + 1}`} />
+                    ))}
+                  </div>
+                )}
+
+                {!hasOutput && (
+                  <p className="text-xs text-muted-foreground italic pt-1">No output data</p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ExecutionDetailModal({
   execution,
   open,
@@ -128,6 +302,7 @@ function ExecutionDetailModal({
   n8nBaseUrl?: string;
   instanceId?: string;
 }) {
+  const [showRawData, setShowRawData] = useState(false);
   // Lazy-load full execution detail (with JSONB data) only when modal opens
   const { data: detail, isLoading: detailLoading } = useQuery<ExecutionLog>({
     queryKey: [`/api/executions/${execution?.id}/detail?instanceId=${instanceId}`],
@@ -142,9 +317,13 @@ function ExecutionDetailModal({
     ? `${n8nBaseUrl}/workflow/${execution.workflow_id}/executions/${execution.execution_id}`
     : null;
 
+  const nodeResults = execData ? parseRunData(execData) : [];
+  const workflowData = detail?.workflow_data as Record<string, unknown> | null;
+  const workflowNodes = (workflowData?.nodes as Array<Record<string, unknown>>) ?? [];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="pr-6">
             {execution.workflow_name}
@@ -167,6 +346,7 @@ function ExecutionDetailModal({
 
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="space-y-4 pb-4">
+            {/* Summary grid */}
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="bg-muted/50 rounded-md p-3">
                 <span className="text-xs font-medium text-muted-foreground">Status</span>
@@ -201,12 +381,11 @@ function ExecutionDetailModal({
               </div>
             </div>
 
-            {lastNode && (
+            {/* Error info */}
+            {execution.status === "error" && lastNode && (
               <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-md p-3">
                 <span className="text-xs font-medium text-muted-foreground">Error Node</span>
-                <p className="mt-1 font-medium text-destructive">
-                  {lastNode}
-                </p>
+                <p className="mt-1 font-medium text-destructive">{lastNode}</p>
               </div>
             )}
 
@@ -219,27 +398,63 @@ function ExecutionDetailModal({
               </div>
             )}
 
+            {/* Loading */}
             {detailLoading && (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             )}
 
-            {execData && (
+            {/* Node execution timeline */}
+            {nodeResults.length > 0 && (
               <div>
-                <span className="text-xs font-medium text-muted-foreground">Execution Data</span>
-                <pre className="mt-1 bg-muted rounded-md p-3 text-xs whitespace-pre-wrap break-words font-mono">
-                  {JSON.stringify(execData, null, 2)}
-                </pre>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Node Execution ({nodeResults.length} nodes)
+                  </span>
+                </div>
+                <NodeExecutionTimeline nodes={nodeResults} n8nBaseUrl={n8nBaseUrl} />
               </div>
             )}
 
-            {detail?.workflow_data && (
+            {/* Workflow nodes summary */}
+            {workflowNodes.length > 0 && (
               <div>
-                <span className="text-xs font-medium text-muted-foreground">Workflow Data</span>
-                <pre className="mt-1 bg-muted rounded-md p-3 text-xs whitespace-pre-wrap break-words font-mono">
-                  {JSON.stringify(detail.workflow_data, null, 2)}
-                </pre>
+                <span className="text-xs font-medium text-muted-foreground">Workflow Nodes</span>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {workflowNodes.map((wn, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs"
+                    >
+                      <span className="font-medium">{wn.name as string}</span>
+                      <span className="text-muted-foreground">{(wn.type as string)?.replace("n8n-nodes-base.", "")}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Raw JSON toggle */}
+            {(execData || workflowData) && (
+              <div>
+                <button
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors underline"
+                  onClick={() => setShowRawData(!showRawData)}
+                >
+                  {showRawData ? "Hide" : "Show"} raw JSON
+                </button>
+
+                {showRawData && (
+                  <div className="mt-2 space-y-3">
+                    {execData && (
+                      <CollapsibleJson data={execData} label="Execution Data" />
+                    )}
+                    {workflowData && (
+                      <CollapsibleJson data={workflowData} label="Workflow Data" />
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
