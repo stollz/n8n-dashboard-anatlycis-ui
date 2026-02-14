@@ -213,7 +213,7 @@ function ExecutionDetailModal({
             {execData && (
               <div>
                 <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Execution Data</span>
-                <pre className="mt-1 border-2 border-foreground bg-foreground/5 p-3 text-xs whitespace-pre-wrap break-words max-h-64 overflow-auto font-mono">
+                <pre className="mt-1 border-2 border-foreground bg-foreground/5 p-3 text-xs whitespace-pre-wrap break-words font-mono">
                   {JSON.stringify(execData, null, 2)}
                 </pre>
               </div>
@@ -222,7 +222,7 @@ function ExecutionDetailModal({
             {execution.workflow_data && (
               <div>
                 <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Workflow Data</span>
-                <pre className="mt-1 border-2 border-foreground bg-foreground/5 p-3 text-xs whitespace-pre-wrap break-words max-h-64 overflow-auto font-mono">
+                <pre className="mt-1 border-2 border-foreground bg-foreground/5 p-3 text-xs whitespace-pre-wrap break-words font-mono">
                   {JSON.stringify(execution.workflow_data, null, 2)}
                 </pre>
               </div>
