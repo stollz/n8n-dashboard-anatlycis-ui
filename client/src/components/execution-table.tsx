@@ -304,7 +304,7 @@ function ExecutionDetailModal({
 }) {
   const [showRawData, setShowRawData] = useState(false);
   // Lazy-load full execution detail (with JSONB data) only when modal opens
-  const { data: detail, isLoading: detailLoading } = useQuery<ExecutionLog>({
+  const { data: detail, isLoading: detailLoading, error: detailError } = useQuery<ExecutionLog>({
     queryKey: [`/api/executions/${execution?.id}/detail?instanceId=${instanceId}`],
     enabled: open && !!execution?.id && !!instanceId,
   });
@@ -398,24 +398,44 @@ function ExecutionDetailModal({
               </div>
             )}
 
-            {/* Loading */}
-            {detailLoading && (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            )}
+            {/* Node execution detail section */}
+            <div>
+              <span className="text-xs font-medium text-muted-foreground">
+                Node Execution {nodeResults.length > 0 ? `(${nodeResults.length} nodes)` : ""}
+              </span>
 
-            {/* Node execution timeline */}
-            {nodeResults.length > 0 && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Node Execution ({nodeResults.length} nodes)
-                  </span>
+              {detailLoading && (
+                <div className="mt-2 flex items-center gap-2 rounded-md border border-border bg-muted/30 p-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Loading node execution data...</span>
                 </div>
-                <NodeExecutionTimeline nodes={nodeResults} n8nBaseUrl={n8nBaseUrl} />
-              </div>
-            )}
+              )}
+
+              {detailError && (
+                <div className="mt-2 rounded-md border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-3">
+                  <p className="text-sm text-destructive">
+                    Failed to load execution details: {detailError instanceof Error ? detailError.message : "Unknown error"}
+                  </p>
+                </div>
+              )}
+
+              {!detailLoading && !detailError && detail && nodeResults.length === 0 && (
+                <div className="mt-2 rounded-md border border-border bg-muted/30 p-3">
+                  <p className="text-sm text-muted-foreground">No node execution data available</p>
+                  {execData && (
+                    <pre className="mt-2 bg-muted rounded-md p-3 text-xs whitespace-pre-wrap break-words font-mono max-h-[400px] overflow-auto">
+                      {JSON.stringify(execData, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
+
+              {nodeResults.length > 0 && (
+                <div className="mt-2">
+                  <NodeExecutionTimeline nodes={nodeResults} n8nBaseUrl={n8nBaseUrl} />
+                </div>
+              )}
+            </div>
 
             {/* Workflow nodes summary */}
             {workflowNodes.length > 0 && (
