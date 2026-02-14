@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef, ICellRendererParams, RowClickedEvent, themeQuartz } from "ag-grid-community";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ interface ExecutionTableProps {
   isLoading?: boolean;
   error?: string | null;
   n8nBaseUrl?: string;
+  instanceId?: string;
 }
 
 const StatusCellRenderer = (params: ICellRendererParams) => {
@@ -90,8 +92,7 @@ const OpenCellRenderer = (params: ICellRendererParams<ExecutionLog>) => {
 };
 
 const ErrorNodeCellRenderer = (params: ICellRendererParams<ExecutionLog>) => {
-  const execData = params.data?.execution_data as Record<string, unknown> | null;
-  const lastNode = execData?.lastNodeExecuted as string | undefined;
+  const lastNode = params.data?.last_node_executed;
   if (!lastNode) return <span className="text-muted-foreground">-</span>;
   return (
     <span className="text-sm font-medium text-destructive">{lastNode}</span>
@@ -119,16 +120,24 @@ function ExecutionDetailModal({
   open,
   onOpenChange,
   n8nBaseUrl,
+  instanceId,
 }: {
   execution: ExecutionLog | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   n8nBaseUrl?: string;
+  instanceId?: string;
 }) {
+  // Lazy-load full execution detail (with JSONB data) only when modal opens
+  const { data: detail, isLoading: detailLoading } = useQuery<ExecutionLog>({
+    queryKey: [`/api/executions/${execution?.id}/detail?instanceId=${instanceId}`],
+    enabled: open && !!execution?.id && !!instanceId,
+  });
+
   if (!execution) return null;
 
-  const execData = execution.execution_data as Record<string, unknown> | null;
-  const lastNode = execData?.lastNodeExecuted as string | undefined;
+  const execData = detail?.execution_data as Record<string, unknown> | null;
+  const lastNode = execution.last_node_executed;
   const n8nUrl = n8nBaseUrl
     ? `${n8nBaseUrl}/workflow/${execution.workflow_id}/executions/${execution.execution_id}`
     : null;
@@ -210,6 +219,12 @@ function ExecutionDetailModal({
               </div>
             )}
 
+            {detailLoading && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
             {execData && (
               <div>
                 <span className="text-xs font-medium text-muted-foreground">Execution Data</span>
@@ -219,11 +234,11 @@ function ExecutionDetailModal({
               </div>
             )}
 
-            {execution.workflow_data && (
+            {detail?.workflow_data && (
               <div>
                 <span className="text-xs font-medium text-muted-foreground">Workflow Data</span>
                 <pre className="mt-1 bg-muted rounded-md p-3 text-xs whitespace-pre-wrap break-words font-mono">
-                  {JSON.stringify(execution.workflow_data, null, 2)}
+                  {JSON.stringify(detail.workflow_data, null, 2)}
                 </pre>
               </div>
             )}
@@ -262,7 +277,7 @@ const darkTheme = themeQuartz.withParams({
   fontFamily: "Inter, system-ui, sans-serif",
 });
 
-export function ExecutionTable({ data, isLoading, error, n8nBaseUrl }: ExecutionTableProps) {
+export function ExecutionTable({ data, isLoading, error, n8nBaseUrl, instanceId }: ExecutionTableProps) {
   const { resolvedTheme } = useTheme();
   const [selectedExecution, setSelectedExecution] = useState<ExecutionLog | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -324,15 +339,11 @@ export function ExecutionTable({ data, isLoading, error, n8nBaseUrl }: Execution
       },
       {
         headerName: "Error node",
-        field: "execution_data",
+        field: "last_node_executed",
         flex: 1.2,
         minWidth: 130,
         cellRenderer: ErrorNodeCellRenderer,
-        sortable: false,
-        valueGetter: (params) => {
-          const ed = params.data?.execution_data as Record<string, unknown> | null;
-          return ed?.lastNodeExecuted ?? "";
-        },
+        sortable: true,
         filter: true,
       },
       {
@@ -444,6 +455,7 @@ export function ExecutionTable({ data, isLoading, error, n8nBaseUrl }: Execution
         open={modalOpen}
         onOpenChange={setModalOpen}
         n8nBaseUrl={n8nBaseUrl}
+        instanceId={instanceId}
       />
     </>
   );

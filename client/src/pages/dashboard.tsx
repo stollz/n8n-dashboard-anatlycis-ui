@@ -459,6 +459,7 @@ export default function Dashboard() {
                   isLoading={executionsLoading}
                   error={executionsError ? getErrorMessage(executionsError) : null}
                   n8nBaseUrl={selectedInstance?.n8nBaseUrl}
+                  instanceId={selectedInstanceId ?? undefined}
                 />
               </section>
             </>

@@ -63,6 +63,7 @@ export interface ExecutionLog {
   mode: string | null;
   node_count: number | null;
   error_message: string | null;
+  last_node_executed: string | null;
   execution_data: Record<string, unknown> | null;
   workflow_data: Record<string, unknown> | null;
   created_at: string;

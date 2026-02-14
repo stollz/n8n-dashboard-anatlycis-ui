@@ -144,7 +144,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "instanceId query parameter is required" });
       }
 
-      const limit = parseInt(req.query.limit as string) || 1000;
+      const limit = parseInt(req.query.limit as string) || 500;
       const search = (req.query.search as string)?.trim();
       const workflowName = (req.query.workflowName as string)?.trim();
       const status = (req.query.status as string)?.trim();
@@ -176,14 +176,29 @@ export async function registerRoutes(
         const searchCondition = or(
           ilike(executionLogs.workflowName, pattern),
           ilike(executionLogs.errorMessage, pattern),
-          ilike(sql`${executionLogs.executionData}::text`, pattern),
-          ilike(sql`${executionLogs.workflowData}::text`, pattern),
         );
         whereCondition = and(whereCondition, searchCondition)!;
       }
 
+      // Select only lightweight columns — exclude heavy JSONB blobs
       const rows = await db
-        .select()
+        .select({
+          id: executionLogs.id,
+          instanceId: executionLogs.instanceId,
+          executionId: executionLogs.executionId,
+          workflowId: executionLogs.workflowId,
+          workflowName: executionLogs.workflowName,
+          status: executionLogs.status,
+          finished: executionLogs.finished,
+          startedAt: executionLogs.startedAt,
+          finishedAt: executionLogs.finishedAt,
+          durationMs: executionLogs.durationMs,
+          mode: executionLogs.mode,
+          nodeCount: executionLogs.nodeCount,
+          errorMessage: executionLogs.errorMessage,
+          lastNodeExecuted: sql<string | null>`${executionLogs.executionData}->>'lastNodeExecuted'`.as("last_node_executed"),
+          createdAt: executionLogs.createdAt,
+        })
         .from(executionLogs)
         .where(whereCondition)
         .orderBy(desc(executionLogs.createdAt))
@@ -203,8 +218,9 @@ export async function registerRoutes(
         mode: r.mode,
         node_count: r.nodeCount,
         error_message: r.errorMessage,
-        execution_data: r.executionData,
-        workflow_data: r.workflowData,
+        last_node_executed: r.lastNodeExecuted ?? null,
+        execution_data: null,
+        workflow_data: null,
         created_at: r.createdAt.toISOString(),
       }));
 
@@ -213,6 +229,52 @@ export async function registerRoutes(
       console.error("Error fetching executions:", error);
       res.status(500).json({
         error: error instanceof Error ? error.message : "Failed to fetch executions",
+      });
+    }
+  });
+
+  app.get("/api/executions/:id/detail", async (req, res) => {
+    try {
+      const executionId = req.params.id;
+      const instanceId = req.query.instanceId as string;
+      if (!instanceId) {
+        return res.status(400).json({ error: "instanceId query parameter is required" });
+      }
+
+      const rows = await db
+        .select()
+        .from(executionLogs)
+        .where(and(
+          eq(executionLogs.id, executionId),
+          eq(executionLogs.instanceId, instanceId),
+        ));
+
+      if (rows.length === 0) {
+        return res.status(404).json({ error: "Execution not found" });
+      }
+
+      const r = rows[0];
+      res.json({
+        id: r.id,
+        execution_id: r.executionId,
+        workflow_id: r.workflowId,
+        workflow_name: r.workflowName,
+        status: r.status,
+        finished: r.finished,
+        started_at: r.startedAt?.toISOString() ?? null,
+        finished_at: r.finishedAt?.toISOString() ?? null,
+        duration_ms: r.durationMs,
+        mode: r.mode,
+        node_count: r.nodeCount,
+        error_message: r.errorMessage,
+        execution_data: r.executionData,
+        workflow_data: r.workflowData,
+        created_at: r.createdAt.toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching execution detail:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to fetch execution detail",
       });
     }
   });
