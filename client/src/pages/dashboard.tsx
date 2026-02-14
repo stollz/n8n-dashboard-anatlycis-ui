@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import {
   Activity,
@@ -42,8 +42,17 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { InstanceSelector } from "@/components/instance-selector";
 import { useInstance } from "@/lib/instance-context";
 import type { ExecutionLog, ExecutionStats, DailyStats } from "@shared/schema";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+
+interface SyncStatusData {
+  instanceId: string;
+  lastSyncedAt: string | null;
+  lastSyncSuccess: boolean | null;
+  lastSyncError: string | null;
+  lastSyncRecordCount: number | null;
+  updatedAt: string;
+}
 
 export default function Dashboard() {
   const { selectedInstanceId, selectedInstance, instances, isLoading: instancesLoading } = useInstance();
@@ -119,6 +128,12 @@ export default function Dashboard() {
     enabled: !!selectedInstanceId,
   });
 
+  const { data: syncStatusData } = useQuery<SyncStatusData | null>({
+    queryKey: [`/api/sync-status?instanceId=${selectedInstanceId}`],
+    enabled: !!selectedInstanceId,
+    refetchInterval: 30_000,
+  });
+
   const hasActiveFilters = !!selectedWorkflow || !!selectedStatus || !!dateRange?.from || !!debouncedSearch;
 
   const clearFilters = () => {
@@ -129,10 +144,19 @@ export default function Dashboard() {
     setDebouncedSearch("");
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
+    if (selectedInstanceId) {
+      try {
+        await apiRequest("POST", `/api/instances/${selectedInstanceId}/sync`);
+      } catch {
+        // Sync trigger failed — still refresh local data below
+      }
+    }
     queryClient.invalidateQueries({ queryKey: [executionsQueryKey] });
     queryClient.invalidateQueries({ queryKey: [`/api/executions/stats?instanceId=${selectedInstanceId}`] });
     queryClient.invalidateQueries({ queryKey: [`/api/executions/daily?instanceId=${selectedInstanceId}`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/sync-status?instanceId=${selectedInstanceId}`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/workflow-names?instanceId=${selectedInstanceId}`] });
     refetchExecutions();
   };
 
@@ -174,6 +198,21 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-2">
               <InstanceSelector />
+              {selectedInstanceId && syncStatusData && (
+                <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold">
+                  <div className={cn(
+                    "h-2 w-2 rounded-full",
+                    syncStatusData.lastSyncSuccess === false ? "bg-red-500" : "bg-green-500"
+                  )} />
+                  <span className="text-muted-foreground">
+                    {syncStatusData.lastSyncSuccess === false
+                      ? `Sync error`
+                      : syncStatusData.lastSyncedAt
+                        ? `Synced ${formatDistanceToNow(new Date(syncStatusData.lastSyncedAt), { addSuffix: true })}`
+                        : "Syncing..."}
+                  </span>
+                </div>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -451,7 +490,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <div className="border-2 border-foreground bg-brutal-mint px-3 py-1 shadow-brutal-sm flex items-center gap-1.5">
                 <Zap className="h-4 w-4" strokeWidth={2.5} />
-                <span className="text-xs font-bold uppercase tracking-wide">Real-time monitoring</span>
+                <span className="text-xs font-bold uppercase tracking-wide">Auto-synced every 60s</span>
               </div>
             </div>
           </div>

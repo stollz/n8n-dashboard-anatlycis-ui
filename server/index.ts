@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { closeAllTunnels } from "./tunnel-manager";
+import { startPoller, stopPoller } from "./poller";
 
 const app = express();
 const httpServer = createServer(app);
@@ -77,6 +78,7 @@ app.use((req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
+  await startPoller();
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -119,7 +121,8 @@ app.use((req, res, next) => {
 
   // Graceful shutdown
   const shutdown = () => {
-    log("Shutting down, closing SSH tunnels...");
+    log("Shutting down, stopping poller and closing SSH tunnels...");
+    stopPoller();
     closeAllTunnels();
     httpServer.close(() => process.exit(0));
   };
