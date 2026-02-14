@@ -12,13 +12,58 @@ const pool = new pg.Pool({
 
 export const db = drizzle(pool, { schema });
 
-/** Create GIN trigram indexes on JSONB text casts for fulltext search */
+/** tsvector column + GIN index for fast fulltext search across all fields.
+ *  Unlike trigram ILIKE, the @@ operator resolves from the compact GIN index
+ *  without decompressing large TOAST JSONB blobs at query time. */
 export async function ensureSearchIndexes(): Promise<void> {
-  await pool.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm`);
+  // Drop legacy artifacts from earlier approaches
+  await pool.query(`DROP INDEX IF EXISTS idx_search_text_trgm`);
+  await pool.query(`DROP INDEX IF EXISTS idx_exec_data_trgm`);
+  await pool.query(`DROP INDEX IF EXISTS idx_wf_data_trgm`);
+  await pool.query(`ALTER TABLE execution_logs DROP COLUMN IF EXISTS search_text`);
+
+  // Add tsvector column
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE execution_logs ADD COLUMN search_tsv tsvector;
+    EXCEPTION WHEN duplicate_column THEN NULL;
+    END $$
+  `);
+
+  // Trigger to auto-populate search_tsv on INSERT/UPDATE
+  await pool.query(`
+    CREATE OR REPLACE FUNCTION execution_logs_search_tsv_update() RETURNS trigger AS $$
+    BEGIN
+      NEW.search_tsv := to_tsvector('simple',
+        COALESCE(NEW.workflow_name, '') || ' ' ||
+        COALESCE(NEW.error_message, '') || ' ' ||
+        COALESCE(NEW.execution_data::text, '') || ' ' ||
+        COALESCE(NEW.workflow_data::text, '')
+      );
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql
+  `);
+
+  await pool.query(`
+    DROP TRIGGER IF EXISTS trg_search_tsv ON execution_logs;
+    CREATE TRIGGER trg_search_tsv
+      BEFORE INSERT OR UPDATE ON execution_logs
+      FOR EACH ROW EXECUTE FUNCTION execution_logs_search_tsv_update()
+  `);
+
+  // GIN index on the tsvector
   await pool.query(
-    `CREATE INDEX IF NOT EXISTS idx_exec_data_trgm ON execution_logs USING gin ((execution_data::text) gin_trgm_ops)`
+    `CREATE INDEX IF NOT EXISTS idx_search_tsv ON execution_logs USING gin (search_tsv)`
   );
-  await pool.query(
-    `CREATE INDEX IF NOT EXISTS idx_wf_data_trgm ON execution_logs USING gin ((workflow_data::text) gin_trgm_ops)`
-  );
+
+  // Backfill rows that don't have search_tsv yet (runs in background)
+  pool.query(`
+    UPDATE execution_logs SET search_tsv = to_tsvector('simple',
+      COALESCE(workflow_name, '') || ' ' ||
+      COALESCE(error_message, '') || ' ' ||
+      COALESCE(execution_data::text, '') || ' ' ||
+      COALESCE(workflow_data::text, '')
+    ) WHERE search_tsv IS NULL
+  `).catch((err) => console.error("Backfill search_tsv failed:", err));
 }

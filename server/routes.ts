@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import type { Server } from "http";
-import { eq, desc, and, or, ilike, gte, lte, sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
 import { insertInstanceSchema, executionLogs, syncStatus } from "@shared/schema";
 import { db } from "./db";
 import {
@@ -172,14 +172,22 @@ export async function registerRoutes(
       let whereCondition = and(...conditions)!;
 
       if (search) {
-        const pattern = `%${search}%`;
-        const searchCondition = or(
-          ilike(executionLogs.workflowName, pattern),
-          ilike(executionLogs.errorMessage, pattern),
-          sql`${executionLogs.executionData}::text ILIKE ${pattern}`,
-          sql`${executionLogs.workflowData}::text ILIKE ${pattern}`,
-        );
-        whereCondition = and(whereCondition, searchCondition)!;
+        // Build prefix-matching tsquery: "word1 word2" → "word1:* & word2:*"
+        const tsquery = search
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((t) => t.replace(/['"\\:&|!()<>]/g, ""))
+          .filter((t) => t.length > 0)
+          .map((t) => `${t}:*`)
+          .join(" & ");
+
+        if (tsquery) {
+          whereCondition = and(
+            whereCondition,
+            sql`search_tsv @@ to_tsquery('simple', ${tsquery})`,
+          )!;
+        }
       }
 
       // Select only lightweight columns — exclude heavy JSONB blobs
