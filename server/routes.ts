@@ -254,7 +254,8 @@ export async function registerRoutes(
       }
 
       const r = rows[0];
-      res.json({
+      // Send manually to avoid double-serializing large JSONB via res.json() override
+      const payload = JSON.stringify({
         id: r.id,
         execution_id: r.executionId,
         workflow_id: r.workflowId,
@@ -271,6 +272,8 @@ export async function registerRoutes(
         workflow_data: r.workflowData,
         created_at: r.createdAt.toISOString(),
       });
+      res.setHeader("Content-Type", "application/json");
+      res.send(payload);
     } catch (error) {
       console.error("Error fetching execution detail:", error);
       res.status(500).json({

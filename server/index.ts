@@ -65,8 +65,13 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      if (capturedJsonResponse && !path.includes("/detail")) {
+        const jsonStr = JSON.stringify(capturedJsonResponse);
+        if (jsonStr.length <= 2000) {
+          logLine += ` :: ${jsonStr}`;
+        } else {
+          logLine += ` :: [${jsonStr.length} bytes]`;
+        }
       }
 
       log(logLine);

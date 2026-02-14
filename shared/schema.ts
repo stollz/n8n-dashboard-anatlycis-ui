@@ -122,6 +122,8 @@ export const executionLogs = pgTable("execution_logs", {
   index("idx_execution_logs_workflow_name").on(table.workflowName),
   index("idx_execution_logs_created_at").on(table.createdAt),
   index("idx_execution_logs_instance_created").on(table.instanceId, table.createdAt),
+  index("idx_execution_logs_instance_workflow_created").on(table.instanceId, table.workflowName, table.createdAt),
+  index("idx_execution_logs_instance_status_created").on(table.instanceId, table.status, table.createdAt),
 ]);
 
 export const syncStatus = pgTable("sync_status", {
