@@ -11,7 +11,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/lib/theme-provider";
 import type { ExecutionLog } from "@shared/schema";
 import { format } from "date-fns";
@@ -120,7 +119,8 @@ interface NodeRunResult {
   status: string;
   executionTime: number;
   executionIndex: number;
-  outputData: unknown[];
+  outputItemCount: number;
+  rawRun: Record<string, unknown>;
   source: string | null;
   subExecution?: { workflowId: string; executionId: string };
 }
@@ -134,15 +134,16 @@ function parseRunData(execData: Record<string, unknown>): NodeRunResult[] {
     const run = runs[0];
     if (!run) continue;
 
+    // Count output items without extracting full data
+    let outputItemCount = 0;
     const mainOutputs = (run.data as Record<string, unknown>)?.main as unknown[][] | undefined;
-    const outputItems: unknown[] = [];
     if (mainOutputs) {
       for (const branch of mainOutputs) {
         if (Array.isArray(branch)) {
           for (const item of branch) {
             const json = (item as Record<string, unknown>)?.json;
             if (json && Object.keys(json as object).length > 0) {
-              outputItems.push(json);
+              outputItemCount++;
             }
           }
         }
@@ -157,13 +158,31 @@ function parseRunData(execData: Record<string, unknown>): NodeRunResult[] {
       status: (run.executionStatus as string) || "unknown",
       executionTime: (run.executionTime as number) || 0,
       executionIndex: (run.executionIndex as number) ?? 999,
-      outputData: outputItems,
+      outputItemCount,
+      rawRun: run,
       source: sourceArr?.[0]?.previousNode as string | null ?? null,
       subExecution: metadata?.subExecution as { workflowId: string; executionId: string } | undefined,
     });
   }
 
   return nodes.sort((a, b) => a.executionIndex - b.executionIndex);
+}
+
+function extractOutputData(run: Record<string, unknown>): unknown[] {
+  const mainOutputs = (run.data as Record<string, unknown>)?.main as unknown[][] | undefined;
+  if (!mainOutputs) return [];
+  const items: unknown[] = [];
+  for (const branch of mainOutputs) {
+    if (Array.isArray(branch)) {
+      for (const item of branch) {
+        const json = (item as Record<string, unknown>)?.json;
+        if (json && Object.keys(json as object).length > 0) {
+          items.push(json);
+        }
+      }
+    }
+  }
+  return items;
 }
 
 function CollapsibleJson({ data, label }: { data: unknown; label: string }) {
@@ -197,94 +216,92 @@ function CollapsibleJson({ data, label }: { data: unknown; label: string }) {
   );
 }
 
-function NodeExecutionTimeline({ nodes, n8nBaseUrl }: { nodes: NodeRunResult[]; n8nBaseUrl?: string }) {
-  const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
-
-  const toggleNode = (idx: number) => {
-    setExpandedNodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      return next;
-    });
-  };
+function NodeRow({ node, n8nBaseUrl }: { node: NodeRunResult; n8nBaseUrl?: string }) {
+  const [expanded, setExpanded] = useState(false);
+  // Lazy: only extract output data when expanded
+  const outputData = useMemo(
+    () => (expanded ? extractOutputData(node.rawRun) : []),
+    [expanded, node.rawRun]
+  );
+  const hasOutput = node.outputItemCount > 0;
+  const statusColor =
+    node.status === "success"
+      ? "bg-emerald-500"
+      : node.status === "error"
+        ? "bg-rose-500"
+        : "bg-amber-500";
 
   return (
-    <div className="space-y-1">
-      {nodes.map((node, idx) => {
-        const isExpanded = expandedNodes.has(idx);
-        const hasOutput = node.outputData.length > 0;
-        const statusColor =
-          node.status === "success"
-            ? "bg-emerald-500"
-            : node.status === "error"
-              ? "bg-rose-500"
-              : "bg-amber-500";
+    <div className="rounded-md border border-border overflow-hidden">
+      <button
+        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/50 transition-colors"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className={`h-2 w-2 rounded-full shrink-0 ${statusColor}`} />
+        <span className="text-sm font-medium flex-1 truncate">{node.name}</span>
+        <span className="text-xs font-mono text-muted-foreground shrink-0">
+          {formatDuration(node.executionTime)}
+        </span>
+        {hasOutput && (
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+            {node.outputItemCount} item{node.outputItemCount !== 1 ? "s" : ""}
+          </Badge>
+        )}
+        {expanded ? (
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        )}
+      </button>
 
-        return (
-          <div key={idx} className="rounded-md border border-border overflow-hidden">
-            <button
-              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/50 transition-colors"
-              onClick={() => toggleNode(idx)}
-            >
-              <div className={`h-2 w-2 rounded-full shrink-0 ${statusColor}`} />
-              <span className="text-sm font-medium flex-1 truncate">{node.name}</span>
-              <span className="text-xs font-mono text-muted-foreground shrink-0">
-                {formatDuration(node.executionTime)}
+      {expanded && (
+        <div className="px-3 pb-3 space-y-2 border-t border-border bg-muted/20">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-xs text-muted-foreground">
+            <span>Status: <span className="text-foreground font-medium">{node.status}</span></span>
+            {node.source && <span>From: <span className="text-foreground font-medium">{node.source}</span></span>}
+            {node.subExecution && (
+              <span>
+                Sub-workflow:{" "}
+                {n8nBaseUrl ? (
+                  <a
+                    href={`${n8nBaseUrl}/workflow/${node.subExecution.workflowId}/executions/${node.subExecution.executionId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-medium"
+                  >
+                    #{node.subExecution.executionId}
+                  </a>
+                ) : (
+                  <span className="text-foreground font-medium">#{node.subExecution.executionId}</span>
+                )}
               </span>
-              {hasOutput && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  {node.outputData.length} item{node.outputData.length !== 1 ? "s" : ""}
-                </Badge>
-              )}
-              {isExpanded ? (
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              )}
-            </button>
-
-            {isExpanded && (
-              <div className="px-3 pb-3 space-y-2 border-t border-border bg-muted/20">
-                <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-xs text-muted-foreground">
-                  <span>Status: <span className="text-foreground font-medium">{node.status}</span></span>
-                  {node.source && <span>From: <span className="text-foreground font-medium">{node.source}</span></span>}
-                  {node.subExecution && (
-                    <span>
-                      Sub-workflow:{" "}
-                      {n8nBaseUrl ? (
-                        <a
-                          href={`${n8nBaseUrl}/workflow/${node.subExecution.workflowId}/executions/${node.subExecution.executionId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline font-medium"
-                        >
-                          #{node.subExecution.executionId}
-                        </a>
-                      ) : (
-                        <span className="text-foreground font-medium">#{node.subExecution.executionId}</span>
-                      )}
-                    </span>
-                  )}
-                </div>
-
-                {hasOutput && (
-                  <div className="space-y-1">
-                    <span className="text-xs font-medium text-muted-foreground">Output</span>
-                    {node.outputData.map((item, i) => (
-                      <CollapsibleJson key={i} data={item} label={`Item ${i + 1}`} />
-                    ))}
-                  </div>
-                )}
-
-                {!hasOutput && (
-                  <p className="text-xs text-muted-foreground italic pt-1">No output data</p>
-                )}
-              </div>
             )}
           </div>
-        );
-      })}
+
+          {outputData.length > 0 && (
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Output</span>
+              {outputData.map((item, i) => (
+                <CollapsibleJson key={i} data={item} label={`Item ${i + 1}`} />
+              ))}
+            </div>
+          )}
+
+          {!hasOutput && (
+            <p className="text-xs text-muted-foreground italic pt-1">No output data</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NodeExecutionTimeline({ nodes, n8nBaseUrl }: { nodes: NodeRunResult[]; n8nBaseUrl?: string }) {
+  return (
+    <div className="space-y-1">
+      {nodes.map((node, idx) => (
+        <NodeRow key={idx} node={node} n8nBaseUrl={n8nBaseUrl} />
+      ))}
     </div>
   );
 }
@@ -323,8 +340,8 @@ function ExecutionDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[85vh] !flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="pr-6">
             {execution.workflow_name}
             {n8nUrl && (
@@ -344,7 +361,7 @@ function ExecutionDetailModal({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <div className="flex-1 overflow-y-auto -mx-6 px-6 min-h-0">
           <div className="space-y-4 pb-4">
             {/* Summary grid */}
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -478,7 +495,7 @@ function ExecutionDetailModal({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
