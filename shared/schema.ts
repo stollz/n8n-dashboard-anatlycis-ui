@@ -50,6 +50,16 @@ export type N8nInstancePublic = Omit<N8nInstance, "dbPassword" | "sshPrivateKeyP
 // n8n Execution Logs Types (matching remote DB schema)
 export type ExecutionStatus = 'success' | 'error' | 'running' | 'waiting' | 'canceled';
 
+export function normalizeStatus(raw: string): ExecutionStatus {
+  const s = raw.toLowerCase().trim();
+  if (s === 'success') return 'success';
+  if (s === 'error' || s === 'crashed' || s === 'failed' || s === 'unknown') return 'error';
+  if (s === 'running' || s === 'new') return 'running';
+  if (s === 'waiting') return 'waiting';
+  if (s === 'canceled' || s === 'cancelled') return 'canceled';
+  return 'error'; // Unknown → surface as error
+}
+
 export interface ExecutionLog {
   id: string;
   execution_id: string;

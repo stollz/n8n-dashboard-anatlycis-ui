@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
-import { n8nInstances, executionLogs, syncStatus } from "@shared/schema";
+import { n8nInstances, executionLogs, syncStatus, normalizeStatus } from "@shared/schema";
 import { getPoolForInstance } from "./tunnel-manager";
 
 function log(message: string) {
@@ -121,7 +121,7 @@ async function pollInstance(instance: typeof n8nInstances.$inferSelect): Promise
       executionId: String(row.execution_id),
       workflowId: String(row.workflow_id),
       workflowName: String(row.workflow_name),
-      status: String(row.status),
+      status: normalizeStatus(String(row.status)),
       finished: Boolean(row.finished),
       startedAt: row.started_at ? new Date(row.started_at as string) : null,
       finishedAt: row.finished_at ? new Date(row.finished_at as string) : null,

@@ -92,11 +92,12 @@ const OpenCellRenderer = (params: ICellRendererParams<ExecutionLog>) => {
   );
 };
 
-const ErrorNodeCellRenderer = (params: ICellRendererParams<ExecutionLog>) => {
+const LastNodeCellRenderer = (params: ICellRendererParams<ExecutionLog>) => {
   const lastNode = params.data?.last_node_executed;
   if (!lastNode) return <span className="text-muted-foreground">-</span>;
+  const isError = params.data?.status === "error";
   return (
-    <span className="text-sm font-medium text-destructive">{lastNode}</span>
+    <span className={`text-sm font-medium ${isError ? "text-destructive" : "text-foreground"}`}>{lastNode}</span>
   );
 };
 
@@ -595,11 +596,11 @@ export function ExecutionTable({ data, isLoading, error, n8nBaseUrl, instanceId,
         valueFormatter: (params) => params.value || "-",
       },
       {
-        headerName: "Error node",
+        headerName: "Last Node",
         field: "last_node_executed",
         flex: 1.2,
         minWidth: 130,
-        cellRenderer: ErrorNodeCellRenderer,
+        cellRenderer: LastNodeCellRenderer,
         sortable: true,
         filter: true,
       },

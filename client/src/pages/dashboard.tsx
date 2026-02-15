@@ -79,8 +79,8 @@ export default function Dashboard() {
     setDateRange(undefined);
   }, [selectedInstanceId]);
 
-  // Build executions query URL with all filters
-  const executionsQueryKey = (() => {
+  // Build shared filter params for all endpoints
+  const filterParams = (() => {
     const params = new URLSearchParams();
     params.set("instanceId", selectedInstanceId ?? "");
     if (selectedWorkflow) params.set("workflowName", selectedWorkflow);
@@ -91,6 +91,12 @@ export default function Dashboard() {
       endOfDay.setHours(23, 59, 59, 999);
       params.set("endDate", endOfDay.toISOString());
     }
+    return params.toString();
+  })();
+
+  // Build executions query URL with all filters (includes search)
+  const executionsQueryKey = (() => {
+    const params = new URLSearchParams(filterParams);
     if (debouncedSearch) params.set("search", debouncedSearch);
     return `/api/executions?${params.toString()}`;
   })();
@@ -110,7 +116,7 @@ export default function Dashboard() {
     isLoading: statsLoading,
     error: statsError,
   } = useQuery<ExecutionStats>({
-    queryKey: [`/api/executions/stats?instanceId=${selectedInstanceId}`],
+    queryKey: [`/api/executions/stats?${filterParams}`],
     enabled: !!selectedInstanceId,
   });
 
@@ -119,7 +125,7 @@ export default function Dashboard() {
     isLoading: dailyLoading,
     error: dailyError,
   } = useQuery<DailyStats[]>({
-    queryKey: [`/api/executions/daily?instanceId=${selectedInstanceId}`],
+    queryKey: [`/api/executions/daily?${filterParams}`],
     enabled: !!selectedInstanceId,
   });
 
@@ -153,8 +159,8 @@ export default function Dashboard() {
       }
     }
     queryClient.invalidateQueries({ queryKey: [executionsQueryKey] });
-    queryClient.invalidateQueries({ queryKey: [`/api/executions/stats?instanceId=${selectedInstanceId}`] });
-    queryClient.invalidateQueries({ queryKey: [`/api/executions/daily?instanceId=${selectedInstanceId}`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/executions/stats?${filterParams}`] });
+    queryClient.invalidateQueries({ queryKey: [`/api/executions/daily?${filterParams}`] });
     queryClient.invalidateQueries({ queryKey: [`/api/sync-status?instanceId=${selectedInstanceId}`] });
     queryClient.invalidateQueries({ queryKey: [`/api/workflow-names?instanceId=${selectedInstanceId}`] });
     refetchExecutions();

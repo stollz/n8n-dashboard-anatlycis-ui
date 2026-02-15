@@ -299,6 +299,19 @@ export async function registerRoutes(
         return res.status(400).json({ error: "instanceId query parameter is required" });
       }
 
+      const workflowName = (req.query.workflowName as string)?.trim();
+      const status = (req.query.status as string)?.trim();
+      const startDate = (req.query.startDate as string)?.trim();
+      const endDate = (req.query.endDate as string)?.trim();
+
+      const conditions = [sql`instance_id = ${instanceId}`];
+      if (workflowName) conditions.push(sql`workflow_name = ${workflowName}`);
+      if (status) conditions.push(sql`status = ${status}`);
+      if (startDate) conditions.push(sql`created_at >= ${new Date(startDate)}`);
+      if (endDate) conditions.push(sql`created_at <= ${new Date(endDate)}`);
+
+      const whereClause = sql.join(conditions, sql` AND `);
+
       const result = await db.execute(sql`
         SELECT
           COUNT(*)::int AS "totalExecutions",
@@ -315,7 +328,7 @@ export async function registerRoutes(
           END AS "successRate",
           MIN(created_at) AS "firstExecutionAt"
         FROM execution_logs
-        WHERE instance_id = ${instanceId}
+        WHERE ${whereClause}
       `);
 
       const row = result.rows[0] as Record<string, unknown>;
@@ -346,6 +359,21 @@ export async function registerRoutes(
       }
 
       const days = parseInt(req.query.days as string) || 14;
+      const workflowName = (req.query.workflowName as string)?.trim();
+      const status = (req.query.status as string)?.trim();
+      const startDate = (req.query.startDate as string)?.trim();
+      const endDate = (req.query.endDate as string)?.trim();
+
+      const conditions = [
+        sql`instance_id = ${instanceId}`,
+        sql`created_at >= NOW() - MAKE_INTERVAL(days => ${days})`,
+      ];
+      if (workflowName) conditions.push(sql`workflow_name = ${workflowName}`);
+      if (status) conditions.push(sql`status = ${status}`);
+      if (startDate) conditions.push(sql`created_at >= ${new Date(startDate)}`);
+      if (endDate) conditions.push(sql`created_at <= ${new Date(endDate)}`);
+
+      const whereClause = sql.join(conditions, sql` AND `);
 
       const result = await db.execute(sql`
         SELECT
@@ -354,8 +382,7 @@ export async function registerRoutes(
           COUNT(*) FILTER (WHERE status = 'success')::int AS success,
           COUNT(*) FILTER (WHERE status = 'error')::int AS error
         FROM execution_logs
-        WHERE instance_id = ${instanceId}
-          AND created_at >= NOW() - MAKE_INTERVAL(days => ${days})
+        WHERE ${whereClause}
         GROUP BY created_at::date
         ORDER BY created_at::date
       `);
@@ -405,6 +432,19 @@ export async function registerRoutes(
         return res.status(400).json({ error: "instanceId query parameter is required" });
       }
 
+      const workflowName = (req.query.workflowName as string)?.trim();
+      const status = (req.query.status as string)?.trim();
+      const startDate = (req.query.startDate as string)?.trim();
+      const endDate = (req.query.endDate as string)?.trim();
+
+      const conditions = [sql`instance_id = ${instanceId}`];
+      if (workflowName) conditions.push(sql`workflow_name = ${workflowName}`);
+      if (status) conditions.push(sql`status = ${status}`);
+      if (startDate) conditions.push(sql`created_at >= ${new Date(startDate)}`);
+      if (endDate) conditions.push(sql`created_at <= ${new Date(endDate)}`);
+
+      const whereClause = sql.join(conditions, sql` AND `);
+
       const result = await db.execute(sql`
         SELECT
           workflow_name,
@@ -413,7 +453,7 @@ export async function registerRoutes(
           COUNT(*) FILTER (WHERE status = 'error')::int AS failed,
           COALESCE(ROUND(AVG(duration_ms) FILTER (WHERE duration_ms IS NOT NULL)), 0)::int AS avg_duration_ms
         FROM execution_logs
-        WHERE instance_id = ${instanceId}
+        WHERE ${whereClause}
         GROUP BY workflow_name
         ORDER BY total_executions DESC
       `);
@@ -426,6 +466,29 @@ export async function registerRoutes(
       });
     }
   });
+
+  // Debug endpoint — only available in development
+  if (process.env.NODE_ENV !== "production") {
+    app.get("/api/debug/status-values", async (req, res) => {
+      try {
+        const instanceId = req.query.instanceId as string;
+        if (!instanceId) {
+          return res.status(400).json({ error: "instanceId query parameter is required" });
+        }
+        const result = await db.execute(sql`
+          SELECT status, COUNT(*)::int AS count
+          FROM execution_logs
+          WHERE instance_id = ${instanceId}
+          GROUP BY status
+          ORDER BY count DESC
+        `);
+        res.json(result.rows);
+      } catch (error) {
+        console.error("Error fetching status values:", error);
+        res.status(500).json({ error: "Failed to fetch status values" });
+      }
+    });
+  }
 
   app.get("/api/workflow-names", async (req, res) => {
     try {

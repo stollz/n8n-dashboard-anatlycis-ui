@@ -12,6 +12,31 @@ const pool = new pg.Pool({
 
 export const db = drizzle(pool, { schema });
 
+/** Normalize any non-canonical status values in existing rows.
+ *  Runs once at startup to fix data ingested before normalizeStatus() was added. */
+export async function normalizeExistingStatuses(): Promise<void> {
+  const result = await pool.query(`
+    UPDATE execution_logs
+    SET status = CASE LOWER(TRIM(status))
+      WHEN 'success' THEN 'success'
+      WHEN 'error'   THEN 'error'
+      WHEN 'crashed'  THEN 'error'
+      WHEN 'failed'   THEN 'error'
+      WHEN 'unknown'  THEN 'error'
+      WHEN 'running'  THEN 'running'
+      WHEN 'new'      THEN 'running'
+      WHEN 'waiting'  THEN 'waiting'
+      WHEN 'canceled'  THEN 'canceled'
+      WHEN 'cancelled' THEN 'canceled'
+      ELSE 'error'
+    END
+    WHERE status NOT IN ('success', 'error', 'running', 'waiting', 'canceled')
+  `);
+  if (result.rowCount && result.rowCount > 0) {
+    console.log(`[db] Normalized ${result.rowCount} rows with non-canonical status values`);
+  }
+}
+
 /** tsvector column + GIN index for fast fulltext search across all fields.
  *  Unlike trigram ILIKE, the @@ operator resolves from the compact GIN index
  *  without decompressing large TOAST JSONB blobs at query time. */
