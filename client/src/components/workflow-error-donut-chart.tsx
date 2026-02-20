@@ -5,38 +5,41 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import type { ExecutionStats } from "@shared/schema";
+import type { WorkflowStats } from "@shared/schema";
 import { AlertCircle, Loader2 } from "lucide-react";
 
-interface StatusDistributionChartProps {
-  stats: ExecutionStats | null;
+interface WorkflowErrorDonutChartProps {
+  title: string;
+  data: WorkflowStats[] | undefined;
   isLoading?: boolean;
   error?: string | null;
 }
 
-const COLORS: Record<string, string> = {
-  success: "#059669",
-  error: "#DC2626",
-  running: "#2563EB",
-  waiting: "#D97706",
-  canceled: "#6B7280",
-};
+const PALETTE = [
+  "#DC2626", // red-600
+  "#EA580C", // orange-600
+  "#D97706", // amber-600
+  "#CA8A04", // yellow-600
+  "#9333EA", // purple-600
+  "#2563EB", // blue-600
+  "#0D9488", // teal-600
+  "#DB2777", // pink-600
+];
 
-export function StatusDistributionChart({
-  stats,
+export function WorkflowErrorDonutChart({
+  title,
+  data,
   isLoading,
   error,
-}: StatusDistributionChartProps) {
+}: WorkflowErrorDonutChartProps) {
   if (isLoading) {
     return (
       <div className="rounded-lg border border-border bg-card shadow-sm h-full">
         <div className="px-6 py-4">
-          <h3 className="text-sm font-semibold text-foreground">
-            Status Distribution
-          </h3>
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         </div>
         <div className="px-6 pb-6">
-          <div className="h-[300px] flex items-center justify-center">
+          <div className="h-[180px] flex items-center justify-center">
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Loading...</span>
@@ -51,12 +54,10 @@ export function StatusDistributionChart({
     return (
       <div className="rounded-lg border border-border bg-card shadow-sm h-full">
         <div className="px-6 py-4">
-          <h3 className="text-sm font-semibold text-foreground">
-            Status Distribution
-          </h3>
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         </div>
         <div className="px-6 pb-6">
-          <div className="h-[300px] flex flex-col items-center justify-center gap-3 text-muted-foreground">
+          <div className="h-[180px] flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <AlertCircle className="h-6 w-6" />
             <span className="text-sm font-medium">Unable to load data</span>
             <span className="text-xs max-w-xs text-center">{error}</span>
@@ -66,56 +67,60 @@ export function StatusDistributionChart({
     );
   }
 
-  const data = stats
-    ? [
-        { name: "Success", value: stats.successCount, color: COLORS.success },
-        { name: "Error", value: stats.errorCount, color: COLORS.error },
-        { name: "Running", value: stats.runningCount, color: COLORS.running },
-        { name: "Waiting", value: stats.waitingCount, color: COLORS.waiting },
-        { name: "Canceled", value: stats.canceledCount, color: COLORS.canceled },
-      ].filter((item) => item.value > 0)
-    : [];
+  const errorWorkflows = (data ?? [])
+    .filter((w) => w.failed > 0)
+    .sort((a, b) => b.failed - a.failed);
 
-  if (data.length === 0) {
+  const totalErrors = errorWorkflows.reduce((sum, w) => sum + w.failed, 0);
+
+  if (errorWorkflows.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card shadow-sm h-full">
         <div className="px-6 py-4">
-          <h3 className="text-sm font-semibold text-foreground">
-            Status Distribution
-          </h3>
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         </div>
         <div className="px-6 pb-6">
-          <div className="h-[300px] flex items-center justify-center">
-            <span className="text-sm text-muted-foreground">No execution data available</span>
+          <div className="h-[180px] flex items-center justify-center">
+            <span className="text-sm text-muted-foreground">No errors in this period</span>
           </div>
         </div>
       </div>
     );
   }
 
+  const chartData = errorWorkflows.map((w, i) => ({
+    name: w.workflow_name,
+    value: w.failed,
+    color: PALETTE[i % PALETTE.length],
+  }));
+
+  const legendItems = chartData.slice(0, 6);
+  const overflowCount = chartData.length - 6;
+
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm h-full">
       <div className="px-6 py-4">
-        <h3 className="text-sm font-semibold text-foreground">
-          Status Distribution
-        </h3>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {totalErrors} error{totalErrors !== 1 ? "s" : ""}
+        </p>
       </div>
       <div className="px-6 pb-6">
-        <div className="h-[220px]">
+        <div className="h-[180px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data}
+                data={chartData}
                 cx="50%"
                 cy="50%"
-                innerRadius={50}
-                outerRadius={90}
+                innerRadius={40}
+                outerRadius={70}
                 paddingAngle={2}
                 dataKey="value"
                 stroke="hsl(var(--card))"
                 strokeWidth={2}
               >
-                {data.map((entry, index) => (
+                {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
@@ -131,26 +136,33 @@ export function StatusDistributionChart({
                 }}
                 itemStyle={{ color: "hsl(var(--foreground))" }}
                 labelStyle={{ color: "hsl(var(--foreground))" }}
-                formatter={(value: number) => [value, "Executions"]}
+                formatter={(value: number, name: string) => [`${value} errors`, name]}
               />
             </PieChart>
           </ResponsiveContainer>
         </div>
         {/* Legend */}
-        <div className="flex flex-wrap gap-3 mt-3 justify-center">
-          {data.map((entry) => (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {legendItems.map((entry) => (
             <div
               key={entry.name}
               className="flex items-center gap-1.5 text-sm"
             >
               <div
-                className="h-2.5 w-2.5 rounded-full"
+                className="h-2.5 w-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: entry.color }}
               />
-              <span className="text-muted-foreground">{entry.name}</span>
+              <span className="text-muted-foreground max-w-[120px] truncate" title={entry.name}>
+                {entry.name}
+              </span>
               <span className="font-mono font-medium text-foreground">{entry.value}</span>
             </div>
           ))}
+          {overflowCount > 0 && (
+            <span className="text-xs text-muted-foreground self-center">
+              + {overflowCount} more
+            </span>
+          )}
         </div>
       </div>
     </div>

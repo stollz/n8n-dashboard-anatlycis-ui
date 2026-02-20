@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, startOfDay, subDays } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import {
   Activity,
@@ -37,11 +37,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { StatCard } from "@/components/stat-card";
 import { ExecutionChart } from "@/components/execution-chart";
 import { StatusDistributionChart } from "@/components/status-distribution-chart";
+import { WorkflowErrorDonutChart } from "@/components/workflow-error-donut-chart";
 import { ExecutionTable } from "@/components/execution-table";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { InstanceSelector } from "@/components/instance-selector";
 import { useInstance } from "@/lib/instance-context";
-import type { ExecutionLog, ExecutionStats, DailyStats } from "@shared/schema";
+import type { ExecutionLog, ExecutionStats, DailyStats, WorkflowStats } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 
@@ -140,6 +141,54 @@ export default function Dashboard() {
     refetchInterval: 30_000,
   });
 
+  // Date windows for workflow error donut charts (independent of dashboard filters)
+  const errorDateWindows = useMemo(() => {
+    const now = new Date();
+    const todayStart = startOfDay(now);
+    const yesterdayStart = startOfDay(subDays(now, 1));
+    const sevenDaysAgoStart = startOfDay(subDays(now, 6));
+    return {
+      today: { start: todayStart.toISOString(), end: now.toISOString() },
+      yesterday: { start: yesterdayStart.toISOString(), end: todayStart.toISOString() },
+      last7Days: { start: sevenDaysAgoStart.toISOString(), end: now.toISOString() },
+    };
+  }, []);
+
+  const makeWorkflowErrorUrl = (start: string, end: string) => {
+    const params = new URLSearchParams();
+    params.set("instanceId", selectedInstanceId ?? "");
+    params.set("startDate", start);
+    params.set("endDate", end);
+    return `/api/executions/workflows?${params.toString()}`;
+  };
+
+  const {
+    data: errorsLast7Days,
+    isLoading: errorsLast7DaysLoading,
+    error: errorsLast7DaysError,
+  } = useQuery<WorkflowStats[]>({
+    queryKey: [makeWorkflowErrorUrl(errorDateWindows.last7Days.start, errorDateWindows.last7Days.end)],
+    enabled: !!selectedInstanceId,
+  });
+
+  const {
+    data: errorsYesterday,
+    isLoading: errorsYesterdayLoading,
+    error: errorsYesterdayError,
+  } = useQuery<WorkflowStats[]>({
+    queryKey: [makeWorkflowErrorUrl(errorDateWindows.yesterday.start, errorDateWindows.yesterday.end)],
+    enabled: !!selectedInstanceId,
+  });
+
+  const {
+    data: errorsToday,
+    isLoading: errorsTodayLoading,
+    error: errorsTodayError,
+  } = useQuery<WorkflowStats[]>({
+    queryKey: [makeWorkflowErrorUrl(errorDateWindows.today.start, errorDateWindows.today.end)],
+    enabled: !!selectedInstanceId,
+  });
+
   const hasActiveFilters = !!selectedWorkflow || !!selectedStatus || !!dateRange?.from || !!debouncedSearch;
 
   const clearFilters = () => {
@@ -163,6 +212,11 @@ export default function Dashboard() {
     queryClient.invalidateQueries({ queryKey: [`/api/executions/daily?${filterParams}`] });
     queryClient.invalidateQueries({ queryKey: [`/api/sync-status?instanceId=${selectedInstanceId}`] });
     queryClient.invalidateQueries({ queryKey: [`/api/workflow-names?instanceId=${selectedInstanceId}`] });
+    queryClient.invalidateQueries({
+      predicate: (query) =>
+        typeof query.queryKey[0] === "string" &&
+        (query.queryKey[0] as string).startsWith("/api/executions/workflows?"),
+    });
     refetchExecutions();
   };
 
@@ -260,6 +314,99 @@ export default function Dashboard() {
 
           {!noInstances && (
             <>
+              {/* Stats */}
+              <section>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <StatCard
+                    title="Total Executions"
+                    value={statsLoading ? "..." : stats?.totalExecutions ?? 0}
+                    description="All time workflow runs"
+                    icon={Activity}
+                    variant="default"
+                  />
+                  <StatCard
+                    title="Successful"
+                    value={statsLoading ? "..." : stats?.successCount ?? 0}
+                    description={statsLoading ? "Loading..." : `${stats?.successRate?.toFixed(1) ?? 0}% success rate`}
+                    icon={CheckCircle2}
+                    variant="success"
+                  />
+                  <StatCard
+                    title="Failed"
+                    value={statsLoading ? "..." : stats?.errorCount ?? 0}
+                    description="Requires attention"
+                    icon={XCircle}
+                    variant="error"
+                  />
+                  <StatCard
+                    title="Avg Duration"
+                    value={statsLoading ? "..." : formatDuration(stats?.avgDurationMs)}
+                    description="Average execution time"
+                    icon={Clock}
+                    variant="warning"
+                  />
+                </div>
+              </section>
+
+              {/* Logging info */}
+              {stats?.firstExecutionAt && (
+                <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-4 py-2.5">
+                  <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    Logging since{" "}
+                    <span className="font-mono">{format(new Date(stats.firstExecutionAt), "MMM d, yyyy 'at' HH:mm")}</span>
+                    {" — "}only workflows executed after this time appear in the dashboard.
+                  </span>
+                </div>
+              )}
+
+              {/* Charts */}
+              <section>
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <div className="lg:col-span-2">
+                    <ExecutionChart
+                      data={dailyStats ?? []}
+                      isLoading={dailyLoading}
+                      error={dailyError ? getErrorMessage(dailyError) : null}
+                    />
+                  </div>
+                  <div>
+                    <StatusDistributionChart
+                      stats={stats ?? null}
+                      isLoading={statsLoading}
+                      error={statsError ? getErrorMessage(statsError) : null}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              {/* Errors by Workflow */}
+              <section>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                  Errors by Workflow
+                </h2>
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <WorkflowErrorDonutChart
+                    title="Last 7 Days"
+                    data={errorsLast7Days}
+                    isLoading={errorsLast7DaysLoading}
+                    error={errorsLast7DaysError ? getErrorMessage(errorsLast7DaysError) : null}
+                  />
+                  <WorkflowErrorDonutChart
+                    title="Yesterday"
+                    data={errorsYesterday}
+                    isLoading={errorsYesterdayLoading}
+                    error={errorsYesterdayError ? getErrorMessage(errorsYesterdayError) : null}
+                  />
+                  <WorkflowErrorDonutChart
+                    title="Today"
+                    data={errorsToday}
+                    isLoading={errorsTodayLoading}
+                    error={errorsTodayError ? getErrorMessage(errorsTodayError) : null}
+                  />
+                </div>
+              </section>
+
               {/* Filters */}
               <section>
                 <div className="flex flex-wrap items-center gap-3">
@@ -389,72 +536,6 @@ export default function Dashboard() {
                       Clear
                     </button>
                   )}
-                </div>
-              </section>
-
-              {/* Stats */}
-              <section>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  <StatCard
-                    title="Total Executions"
-                    value={statsLoading ? "..." : stats?.totalExecutions ?? 0}
-                    description="All time workflow runs"
-                    icon={Activity}
-                    variant="default"
-                  />
-                  <StatCard
-                    title="Successful"
-                    value={statsLoading ? "..." : stats?.successCount ?? 0}
-                    description={statsLoading ? "Loading..." : `${stats?.successRate?.toFixed(1) ?? 0}% success rate`}
-                    icon={CheckCircle2}
-                    variant="success"
-                  />
-                  <StatCard
-                    title="Failed"
-                    value={statsLoading ? "..." : stats?.errorCount ?? 0}
-                    description="Requires attention"
-                    icon={XCircle}
-                    variant="error"
-                  />
-                  <StatCard
-                    title="Avg Duration"
-                    value={statsLoading ? "..." : formatDuration(stats?.avgDurationMs)}
-                    description="Average execution time"
-                    icon={Clock}
-                    variant="warning"
-                  />
-                </div>
-              </section>
-
-              {/* Logging info */}
-              {stats?.firstExecutionAt && (
-                <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-4 py-2.5">
-                  <Info className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">
-                    Logging since{" "}
-                    <span className="font-mono">{format(new Date(stats.firstExecutionAt), "MMM d, yyyy 'at' HH:mm")}</span>
-                    {" — "}only workflows executed after this time appear in the dashboard.
-                  </span>
-                </div>
-              )}
-
-              {/* Charts */}
-              <section>
-                <div className="grid gap-6 lg:grid-cols-3">
-                  <div className="lg:col-span-2">
-                    <ExecutionChart
-                      data={dailyStats ?? []}
-                      isLoading={dailyLoading}
-                      error={dailyError ? getErrorMessage(dailyError) : null}
-                    />
-                  </div>
-                  <div>
-                    <StatusDistributionChart
-                      stats={stats ?? null}
-                      isLoading={statsLoading}
-                      error={statsError ? getErrorMessage(statsError) : null}
-                    />
-                  </div>
                 </div>
               </section>
 
